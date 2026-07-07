@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Application\Liekinheitin.Application.csproj" />
+    <ProjectReference Include="..\Domain\Liekinheitin.Domain.csproj" />
+  </ItemGroup>
+
+	<!--
+    Infrastructure référence Application et Domain (et a donc accès à Domain de façon
+    transitive via Application). Aucun projet WPF ne doit être référencé ici : Infrastructure
+    ne connaît rien de l'affichage.
+  -->
+
+
+</Project>

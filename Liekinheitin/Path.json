@@ -1,0 +1,1086 @@
+{
+  "controleurs": [
+    {
+      "id": "ctrl_1",
+      "ip": "192.168.1.45"
+    },
+    {
+      "id": "ctrl_2",
+      "ip": "192.168.1.46"
+    },
+    {
+      "id": "ctrl_3",
+      "ip": "192.168.1.47"
+    },
+    {
+      "id": "ctrl_4",
+      "ip": "192.168.1.48"
+    }
+  ],
+  "plages": [
+    {
+      "entiteDebut": 100,
+      "entiteFin": 269,
+      "controleur": "ctrl_1",
+      "univers": 0,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 270,
+      "entiteFin": 358,
+      "controleur": "ctrl_1",
+      "univers": 1,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 400,
+      "entiteFin": 569,
+      "controleur": "ctrl_1",
+      "univers": 2,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 570,
+      "entiteFin": 658,
+      "controleur": "ctrl_1",
+      "univers": 3,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 700,
+      "entiteFin": 869,
+      "controleur": "ctrl_1",
+      "univers": 4,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 870,
+      "entiteFin": 958,
+      "controleur": "ctrl_1",
+      "univers": 5,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1000,
+      "entiteFin": 1169,
+      "controleur": "ctrl_1",
+      "univers": 6,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1170,
+      "entiteFin": 1258,
+      "controleur": "ctrl_1",
+      "univers": 7,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1300,
+      "entiteFin": 1469,
+      "controleur": "ctrl_1",
+      "univers": 8,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1470,
+      "entiteFin": 1558,
+      "controleur": "ctrl_1",
+      "univers": 9,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1600,
+      "entiteFin": 1769,
+      "controleur": "ctrl_1",
+      "univers": 10,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1770,
+      "entiteFin": 1858,
+      "controleur": "ctrl_1",
+      "univers": 11,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1900,
+      "entiteFin": 2069,
+      "controleur": "ctrl_1",
+      "univers": 12,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2070,
+      "entiteFin": 2158,
+      "controleur": "ctrl_1",
+      "univers": 13,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2200,
+      "entiteFin": 2369,
+      "controleur": "ctrl_1",
+      "univers": 14,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2370,
+      "entiteFin": 2458,
+      "controleur": "ctrl_1",
+      "univers": 15,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2500,
+      "entiteFin": 2669,
+      "controleur": "ctrl_1",
+      "univers": 16,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2670,
+      "entiteFin": 2758,
+      "controleur": "ctrl_1",
+      "univers": 17,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2800,
+      "entiteFin": 2969,
+      "controleur": "ctrl_1",
+      "univers": 18,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 2970,
+      "entiteFin": 3058,
+      "controleur": "ctrl_1",
+      "univers": 19,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3100,
+      "entiteFin": 3269,
+      "controleur": "ctrl_1",
+      "univers": 20,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3270,
+      "entiteFin": 3358,
+      "controleur": "ctrl_1",
+      "univers": 21,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3400,
+      "entiteFin": 3569,
+      "controleur": "ctrl_1",
+      "univers": 22,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3570,
+      "entiteFin": 3658,
+      "controleur": "ctrl_1",
+      "univers": 23,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3700,
+      "entiteFin": 3869,
+      "controleur": "ctrl_1",
+      "univers": 24,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 3870,
+      "entiteFin": 3958,
+      "controleur": "ctrl_1",
+      "univers": 25,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4000,
+      "entiteFin": 4169,
+      "controleur": "ctrl_1",
+      "univers": 26,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4170,
+      "entiteFin": 4258,
+      "controleur": "ctrl_1",
+      "univers": 27,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4300,
+      "entiteFin": 4469,
+      "controleur": "ctrl_1",
+      "univers": 28,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4470,
+      "entiteFin": 4558,
+      "controleur": "ctrl_1",
+      "univers": 29,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4600,
+      "entiteFin": 4769,
+      "controleur": "ctrl_1",
+      "univers": 30,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 4770,
+      "entiteFin": 4858,
+      "controleur": "ctrl_1",
+      "univers": 31,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5100,
+      "entiteFin": 5269,
+      "controleur": "ctrl_2",
+      "univers": 0,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5270,
+      "entiteFin": 5358,
+      "controleur": "ctrl_2",
+      "univers": 1,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5400,
+      "entiteFin": 5569,
+      "controleur": "ctrl_2",
+      "univers": 2,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5570,
+      "entiteFin": 5658,
+      "controleur": "ctrl_2",
+      "univers": 3,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5700,
+      "entiteFin": 5869,
+      "controleur": "ctrl_2",
+      "univers": 4,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 5870,
+      "entiteFin": 5958,
+      "controleur": "ctrl_2",
+      "univers": 5,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6000,
+      "entiteFin": 6169,
+      "controleur": "ctrl_2",
+      "univers": 6,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6170,
+      "entiteFin": 6258,
+      "controleur": "ctrl_2",
+      "univers": 7,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6300,
+      "entiteFin": 6469,
+      "controleur": "ctrl_2",
+      "univers": 8,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6470,
+      "entiteFin": 6558,
+      "controleur": "ctrl_2",
+      "univers": 9,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6600,
+      "entiteFin": 6769,
+      "controleur": "ctrl_2",
+      "univers": 10,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6770,
+      "entiteFin": 6858,
+      "controleur": "ctrl_2",
+      "univers": 11,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 6900,
+      "entiteFin": 7069,
+      "controleur": "ctrl_2",
+      "univers": 12,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7070,
+      "entiteFin": 7158,
+      "controleur": "ctrl_2",
+      "univers": 13,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7200,
+      "entiteFin": 7369,
+      "controleur": "ctrl_2",
+      "univers": 14,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7370,
+      "entiteFin": 7458,
+      "controleur": "ctrl_2",
+      "univers": 15,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7500,
+      "entiteFin": 7669,
+      "controleur": "ctrl_2",
+      "univers": 16,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7670,
+      "entiteFin": 7758,
+      "controleur": "ctrl_2",
+      "univers": 17,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7800,
+      "entiteFin": 7969,
+      "controleur": "ctrl_2",
+      "univers": 18,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 7970,
+      "entiteFin": 8058,
+      "controleur": "ctrl_2",
+      "univers": 19,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8100,
+      "entiteFin": 8269,
+      "controleur": "ctrl_2",
+      "univers": 20,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8270,
+      "entiteFin": 8358,
+      "controleur": "ctrl_2",
+      "univers": 21,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8400,
+      "entiteFin": 8569,
+      "controleur": "ctrl_2",
+      "univers": 22,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8570,
+      "entiteFin": 8658,
+      "controleur": "ctrl_2",
+      "univers": 23,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8700,
+      "entiteFin": 8869,
+      "controleur": "ctrl_2",
+      "univers": 24,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 8870,
+      "entiteFin": 8958,
+      "controleur": "ctrl_2",
+      "univers": 25,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9000,
+      "entiteFin": 9169,
+      "controleur": "ctrl_2",
+      "univers": 26,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9170,
+      "entiteFin": 9258,
+      "controleur": "ctrl_2",
+      "univers": 27,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9300,
+      "entiteFin": 9469,
+      "controleur": "ctrl_2",
+      "univers": 28,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9470,
+      "entiteFin": 9558,
+      "controleur": "ctrl_2",
+      "univers": 29,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9600,
+      "entiteFin": 9769,
+      "controleur": "ctrl_2",
+      "univers": 30,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 9770,
+      "entiteFin": 9858,
+      "controleur": "ctrl_2",
+      "univers": 31,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10100,
+      "entiteFin": 10269,
+      "controleur": "ctrl_3",
+      "univers": 0,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10270,
+      "entiteFin": 10358,
+      "controleur": "ctrl_3",
+      "univers": 1,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10400,
+      "entiteFin": 10569,
+      "controleur": "ctrl_3",
+      "univers": 2,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10570,
+      "entiteFin": 10658,
+      "controleur": "ctrl_3",
+      "univers": 3,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10700,
+      "entiteFin": 10869,
+      "controleur": "ctrl_3",
+      "univers": 4,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 10870,
+      "entiteFin": 10958,
+      "controleur": "ctrl_3",
+      "univers": 5,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11000,
+      "entiteFin": 11169,
+      "controleur": "ctrl_3",
+      "univers": 6,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11170,
+      "entiteFin": 11258,
+      "controleur": "ctrl_3",
+      "univers": 7,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11300,
+      "entiteFin": 11469,
+      "controleur": "ctrl_3",
+      "univers": 8,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11470,
+      "entiteFin": 11558,
+      "controleur": "ctrl_3",
+      "univers": 9,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11600,
+      "entiteFin": 11769,
+      "controleur": "ctrl_3",
+      "univers": 10,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11770,
+      "entiteFin": 11858,
+      "controleur": "ctrl_3",
+      "univers": 11,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 11900,
+      "entiteFin": 12069,
+      "controleur": "ctrl_3",
+      "univers": 12,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12070,
+      "entiteFin": 12158,
+      "controleur": "ctrl_3",
+      "univers": 13,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12200,
+      "entiteFin": 12369,
+      "controleur": "ctrl_3",
+      "univers": 14,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12370,
+      "entiteFin": 12458,
+      "controleur": "ctrl_3",
+      "univers": 15,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12500,
+      "entiteFin": 12669,
+      "controleur": "ctrl_3",
+      "univers": 16,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12670,
+      "entiteFin": 12758,
+      "controleur": "ctrl_3",
+      "univers": 17,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12800,
+      "entiteFin": 12969,
+      "controleur": "ctrl_3",
+      "univers": 18,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 12970,
+      "entiteFin": 13058,
+      "controleur": "ctrl_3",
+      "univers": 19,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13100,
+      "entiteFin": 13269,
+      "controleur": "ctrl_3",
+      "univers": 20,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13270,
+      "entiteFin": 13358,
+      "controleur": "ctrl_3",
+      "univers": 21,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13400,
+      "entiteFin": 13569,
+      "controleur": "ctrl_3",
+      "univers": 22,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13570,
+      "entiteFin": 13658,
+      "controleur": "ctrl_3",
+      "univers": 23,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13700,
+      "entiteFin": 13869,
+      "controleur": "ctrl_3",
+      "univers": 24,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 13870,
+      "entiteFin": 13958,
+      "controleur": "ctrl_3",
+      "univers": 25,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14000,
+      "entiteFin": 14169,
+      "controleur": "ctrl_3",
+      "univers": 26,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14170,
+      "entiteFin": 14258,
+      "controleur": "ctrl_3",
+      "univers": 27,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14300,
+      "entiteFin": 14469,
+      "controleur": "ctrl_3",
+      "univers": 28,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14470,
+      "entiteFin": 14558,
+      "controleur": "ctrl_3",
+      "univers": 29,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14600,
+      "entiteFin": 14769,
+      "controleur": "ctrl_3",
+      "univers": 30,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 14770,
+      "entiteFin": 14858,
+      "controleur": "ctrl_3",
+      "univers": 31,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15100,
+      "entiteFin": 15269,
+      "controleur": "ctrl_4",
+      "univers": 0,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15270,
+      "entiteFin": 15358,
+      "controleur": "ctrl_4",
+      "univers": 1,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15400,
+      "entiteFin": 15569,
+      "controleur": "ctrl_4",
+      "univers": 2,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15570,
+      "entiteFin": 15658,
+      "controleur": "ctrl_4",
+      "univers": 3,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15700,
+      "entiteFin": 15869,
+      "controleur": "ctrl_4",
+      "univers": 4,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 15870,
+      "entiteFin": 15958,
+      "controleur": "ctrl_4",
+      "univers": 5,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16000,
+      "entiteFin": 16169,
+      "controleur": "ctrl_4",
+      "univers": 6,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16170,
+      "entiteFin": 16258,
+      "controleur": "ctrl_4",
+      "univers": 7,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16300,
+      "entiteFin": 16469,
+      "controleur": "ctrl_4",
+      "univers": 8,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16470,
+      "entiteFin": 16558,
+      "controleur": "ctrl_4",
+      "univers": 9,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16600,
+      "entiteFin": 16769,
+      "controleur": "ctrl_4",
+      "univers": 10,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16770,
+      "entiteFin": 16858,
+      "controleur": "ctrl_4",
+      "univers": 11,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 16900,
+      "entiteFin": 17069,
+      "controleur": "ctrl_4",
+      "univers": 12,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17070,
+      "entiteFin": 17158,
+      "controleur": "ctrl_4",
+      "univers": 13,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17200,
+      "entiteFin": 17369,
+      "controleur": "ctrl_4",
+      "univers": 14,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17370,
+      "entiteFin": 17458,
+      "controleur": "ctrl_4",
+      "univers": 15,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17500,
+      "entiteFin": 17669,
+      "controleur": "ctrl_4",
+      "univers": 16,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17670,
+      "entiteFin": 17758,
+      "controleur": "ctrl_4",
+      "univers": 17,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17800,
+      "entiteFin": 17969,
+      "controleur": "ctrl_4",
+      "univers": 18,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 17970,
+      "entiteFin": 18058,
+      "controleur": "ctrl_4",
+      "univers": 19,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18100,
+      "entiteFin": 18269,
+      "controleur": "ctrl_4",
+      "univers": 20,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18270,
+      "entiteFin": 18358,
+      "controleur": "ctrl_4",
+      "univers": 21,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18400,
+      "entiteFin": 18569,
+      "controleur": "ctrl_4",
+      "univers": 22,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18570,
+      "entiteFin": 18658,
+      "controleur": "ctrl_4",
+      "univers": 23,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18700,
+      "entiteFin": 18869,
+      "controleur": "ctrl_4",
+      "univers": 24,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 18870,
+      "entiteFin": 18958,
+      "controleur": "ctrl_4",
+      "univers": 25,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19000,
+      "entiteFin": 19169,
+      "controleur": "ctrl_4",
+      "univers": 26,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19170,
+      "entiteFin": 19258,
+      "controleur": "ctrl_4",
+      "univers": 27,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19300,
+      "entiteFin": 19469,
+      "controleur": "ctrl_4",
+      "univers": 28,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19470,
+      "entiteFin": 19558,
+      "controleur": "ctrl_4",
+      "univers": 29,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19600,
+      "entiteFin": 19769,
+      "controleur": "ctrl_4",
+      "univers": 30,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 19770,
+      "entiteFin": 19858,
+      "controleur": "ctrl_4",
+      "univers": 31,
+      "canalDepart": 1,
+      "canauxParEntite": 3
+    },
+    {
+      "entiteDebut": 1,
+      "entiteFin": 1,
+      "controleur": "ctrl_4",
+      "univers": 33,
+      "canalDepart": 1,
+      "canauxParEntite": 4
+    },
+    {
+      "entiteDebut": 2,
+      "entiteFin": 2,
+      "controleur": "ctrl_4",
+      "univers": 33,
+      "canalDepart": 10,
+      "canauxParEntite": 13
+    },
+    {
+      "entiteDebut": 3,
+      "entiteFin": 3,
+      "controleur": "ctrl_4",
+      "univers": 33,
+      "canalDepart": 30,
+      "canauxParEntite": 13
+    },
+    {
+      "entiteDebut": 4,
+      "entiteFin": 4,
+      "controleur": "ctrl_4",
+      "univers": 33,
+      "canalDepart": 50,
+      "canauxParEntite": 13
+    },
+    {
+      "entiteDebut": 5,
+      "entiteFin": 5,
+      "controleur": "ctrl_4",
+      "univers": 33,
+      "canalDepart": 70,
+      "canauxParEntite": 13
+    }
+  ]
+}

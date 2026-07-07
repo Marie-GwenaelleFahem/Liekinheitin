@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Config/">
+    <File Path="Path.json" />
+  </Folder>
+  <Project Path="Application/Liekinheitin.Application.csproj" />
+  <Project Path="CreativeTool/Liekinheitin.CreativeTool.csproj" />
+  <Project Path="Domain/Liekinheitin.Domain.csproj" />
+  <Project Path="Infrastructure/Liekinheitin.Infrastructure.csproj" />
+  <Project Path="RoutingHost/Liekinheitin.RoutingHost.csproj" />
+</Solution>
