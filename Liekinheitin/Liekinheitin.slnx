@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Config/">
-    <File Path="Path.json" />
+    <File Path="patch.json" />
   </Folder>
   <Project Path="Application/Liekinheitin.Application.csproj" />
   <Project Path="CreativeTool/Liekinheitin.CreativeTool.csproj" />

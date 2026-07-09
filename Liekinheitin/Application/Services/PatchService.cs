@@ -126,6 +126,20 @@ namespace Liekinheitin.Application.Services
 
             return ids;
         }
+        public List<int> GetAllEntityIds(string controllerId)
+        {
+            var ids = new List<int>();
+
+            foreach (var range in Ranges.Where(r => r.ControllerId == controllerId))
+            {
+                for (int id = range.EntityIdStart; id <= range.EntityIdEnd; id++)
+                {
+                    ids.Add(id);
+                }
+            }
+
+            return ids;
+        }
 
     }
 }
