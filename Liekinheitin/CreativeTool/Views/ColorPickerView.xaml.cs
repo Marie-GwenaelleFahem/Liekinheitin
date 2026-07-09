@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace CreativeTool.Views
+namespace Liekinheitin.CreativeTool.Views
 {
     /// <summary>
     /// Logique d'interaction pour ColorPickerView.xaml
