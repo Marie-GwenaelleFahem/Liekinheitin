@@ -20,5 +20,10 @@ namespace Liekinheitin.RoutingHost
         {
             InitializeComponent();
         }
+
+        private void PatchVisualizationView_Loaded(object sender, RoutedEventArgs e)
+        {
+
+        }
     }
 }
