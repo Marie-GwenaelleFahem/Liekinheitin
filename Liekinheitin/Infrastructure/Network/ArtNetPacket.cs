@@ -32,10 +32,10 @@ public class ArtNetPacket
     /// </returns>
     public byte[] ToBytes()
     {
-        // 8 octets d'en-tête "Art-Net" (avec le zéro terminal) + 12 octets d'en-tête ArtDMX
+        // 8 octets d'en-tête "Art-Net" (avec le zéro terminal) + 10 octets d'en-tête ArtDMX
         // + 512 octets de données = 530 octets au total.
         var data = DmxData.Length == DmxDataLength ? DmxData : ResizeTo512(DmxData);
-        var bytes = new byte[8 + 12 + DmxDataLength];
+        var bytes = new byte[8 + 10 + DmxDataLength];
         int offset = 0;
 
         // "Art-Net" suivi d'un octet nul.

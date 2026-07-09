@@ -14,4 +14,8 @@
     <ProjectReference Include="..\Infrastructure\Liekinheitin.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\Path.json" Link="patch.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

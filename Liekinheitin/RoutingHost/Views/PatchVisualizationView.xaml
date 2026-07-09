@@ -1,12 +1,220 @@
-﻿<UserControl x:Class="Liekinheitin.RoutingHost.Views.PatchVisualizationView"
+<UserControl x:Class="Liekinheitin.RoutingHost.Views.PatchVisualizationView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:Liekinheitin.RoutingHost.Views"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
-    </Grid>
+             xmlns:conv="clr-namespace:Liekinheitin.RoutingHost.Converters"
+             xmlns:vm="clr-namespace:Liekinheitin.RoutingHost.ViewModels"
+             mc:Ignorable="d"
+             d:DesignHeight="450" d:DesignWidth="800"
+             Background="#14171C">
+
+    <UserControl.Resources>
+        <conv:StatusDotToBrushConverter x:Key="StatusDotToBrushConverter" />
+
+        <Style x:Key="BreadcrumbButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="#1B2028" />
+            <Setter Property="Foreground" Value="#E8E6DF" />
+            <Setter Property="BorderBrush" Value="#2B3240" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="7">
+                            <ContentPresenter Margin="{TemplateBinding Padding}"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center" />
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="CardButtonStyle" TargetType="Button">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="#E8E6DF" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Cursor" Value="Arrow" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="CardBorder"
+                                Background="{TemplateBinding Background}"
+                                CornerRadius="12,12,0,0">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsEnabled" Value="True">
+                                <Setter TargetName="CardBorder" Property="Cursor" Value="Hand" />
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="CardBorder" Property="Background" Value="#262D3A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SwatchButtonBaseStyle" TargetType="Button">
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}" />
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Opacity" Value="0.85" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+
+        <Style x:Key="SwatchRedStyle" TargetType="Button" BasedOn="{StaticResource SwatchButtonBaseStyle}">
+            <Setter Property="Background" Value="#E5484D" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSwatch}" Value="{x:Static vm:CardSwatch.Red}">
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="BorderBrush" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SwatchBlueStyle" TargetType="Button" BasedOn="{StaticResource SwatchButtonBaseStyle}">
+            <Setter Property="Background" Value="#3B82F6" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSwatch}" Value="{x:Static vm:CardSwatch.Blue}">
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="BorderBrush" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SwatchGreenStyle" TargetType="Button" BasedOn="{StaticResource SwatchButtonBaseStyle}">
+            <Setter Property="Background" Value="#22C55E" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSwatch}" Value="{x:Static vm:CardSwatch.Green}">
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="BorderBrush" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+
+        <Style x:Key="SwatchOffStyle" TargetType="Button" BasedOn="{StaticResource SwatchButtonBaseStyle}">
+            <Setter Property="Background" Value="#262C37" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding SelectedSwatch}" Value="{x:Static vm:CardSwatch.Off}">
+                    <Setter Property="BorderThickness" Value="2" />
+                    <Setter Property="BorderBrush" Value="White" />
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="24">
+
+        <!-- Fil d'Ariane -->
+        <ItemsControl DockPanel.Dock="Top" Margin="0,0,0,16"
+                      ItemsSource="{Binding Breadcrumb}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:BreadcrumbItemViewModel}">
+                    <StackPanel Orientation="Horizontal" Margin="0,0,6,0">
+                        <Button Content="{Binding Label}"
+                                Command="{Binding NavigateCommand}"
+                                Visibility="{Binding IsCurrent, Converter={x:Static conv:BoolToCollapsedConverter.Instance}}"
+                                Style="{StaticResource BreadcrumbButtonStyle}" />
+                        <TextBlock Text="{Binding Label}"
+                                   Foreground="#838A99"
+                                   VerticalAlignment="Center"
+                                   Padding="10,5"
+                                   Visibility="{Binding IsCurrent, Converter={x:Static conv:BoolToVisibleConverter.Instance}}" />
+                        <TextBlock Text="›"
+                                   Foreground="#838A99"
+                                   VerticalAlignment="Center"
+                                   Margin="4,0"
+                                   Visibility="{Binding IsCurrent, Converter={x:Static conv:BoolToCollapsedConverter.Instance}}" />
+                    </StackPanel>
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+
+        <!-- Grille de cartes -->
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding Cards}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate DataType="{x:Type vm:PatchCardViewModel}">
+                        <Border Background="#1F2530" BorderBrush="#2B3240" BorderThickness="1"
+                                CornerRadius="12" Width="180" Margin="0,0,16,16">
+                            <StackPanel>
+                                <Button Style="{StaticResource CardButtonStyle}"
+                                        Command="{Binding NavigateCommand}"
+                                        IsEnabled="{Binding IsClickable}">
+                                    <StackPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="14,12,14,12">
+                                            <Ellipse Width="9" Height="9" VerticalAlignment="Center"
+                                                     Fill="{Binding Status, Converter={StaticResource StatusDotToBrushConverter}}" />
+                                            <TextBlock Text="{Binding Title}"
+                                                       Foreground="#E8E6DF"
+                                                       FontWeight="SemiBold"
+                                                       FontSize="13.5"
+                                                       Margin="8,0,0,0" />
+                                        </StackPanel>
+                                        <TextBlock Text="{Binding Body}"
+                                                   Foreground="#838A99"
+                                                   FontFamily="Consolas"
+                                                   FontSize="12.5"
+                                                   Margin="14,0,14,14" />
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- Couleurs de test : envoie un vrai paquet ArtNet vers les entités de cette carte -->
+                                <UniformGrid Columns="4" Rows="1">
+                                    <Button Style="{StaticResource SwatchRedStyle}"
+                                            Command="{Binding ApplySwatchCommand}"
+                                            CommandParameter="{x:Static vm:CardSwatch.Red}"
+                                            ToolTip="Rouge" />
+                                    <Button Style="{StaticResource SwatchBlueStyle}"
+                                            Command="{Binding ApplySwatchCommand}"
+                                            CommandParameter="{x:Static vm:CardSwatch.Blue}"
+                                            ToolTip="Bleu" />
+                                    <Button Style="{StaticResource SwatchGreenStyle}"
+                                            Command="{Binding ApplySwatchCommand}"
+                                            CommandParameter="{x:Static vm:CardSwatch.Green}"
+                                            ToolTip="Vert" />
+                                    <Button Style="{StaticResource SwatchOffStyle}"
+                                            Command="{Binding ApplySwatchCommand}"
+                                            CommandParameter="{x:Static vm:CardSwatch.Off}"
+                                            ToolTip="Éteindre" />
+                                </UniformGrid>
+                            </StackPanel>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+
+    </DockPanel>
 </UserControl>
