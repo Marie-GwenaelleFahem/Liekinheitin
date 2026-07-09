@@ -50,7 +50,7 @@ Modèles de données purs : `Controller`, `Entity` (une LED/fixture et ses canau
 
 ## État d'avancement
 
-Les couches Domain, Application et Infrastructure sont implémentées et documentées. Les applications CreativeTool et RoutingHost existent pour l'instant sous forme de squelettes de projet (ViewModels et vues WPF encore à construire).
+Les couches Domain, Application et Infrastructure sont implémentées et documentées. CreativeTool dispose maintenant d'un MVP UI : preview LED 128 x 128, timeline, panneau de propriétés, lecture, sauvegarde/chargement JSON et publication UDP de l'état courant vers RoutingHost. RoutingHost existe encore majoritairement comme squelette UI.
 
 ## Prérequis
 
@@ -63,6 +63,51 @@ Les couches Domain, Application et Infrastructure sont implémentées et documen
 dotnet build Liekinheitin/Liekinheitin.slnx
 ```
 
+
+## Lancement
+
+Depuis la racine du dépôt :
+
+```powershell
+dotnet build Liekinheitin\Liekinheitin.slnx
+```
+
+Lancer CreativeTool :
+
+```powershell
+dotnet run --project Liekinheitin\CreativeTool\Liekinheitin.CreativeTool.csproj
+```
+
+Lancer RoutingHost dans un autre terminal :
+
+```powershell
+dotnet run --project Liekinheitin\RoutingHost\Liekinheitin.RoutingHost.csproj
+```
+
+CreativeTool publie actuellement les `State` en UDP vers `127.0.0.1:5000` pendant la lecture. RoutingHost doit donc écouter ce port pour recevoir les états.
+
+Si un build échoue avec un message du type `Liekinheitin.CreativeTool.exe est en cours d'utilisation`, fermer la fenêtre CreativeTool déjà ouverte puis relancer le build. C'est un verrou Windows sur l'exécutable, pas une erreur de compilation.
+
 ## Configuration
 
-Le fichier `Liekinheitin/Path.json` décrit le plan d'adressage : contrôleurs, univers DMX et plages d'entités associées.
+Le fichier `Liekinheitin/Path.json` décrit le plan d'adressage : contrôleurs, univers DMX et 
+
+## Notes Git
+
+Le dossier `.vs/` est un dossier local de Visual Studio et ne doit pas être versionné. Il est ignoré par `.gitignore`.
+
+Si des fichiers `.vs` apparaissent encore dans `git status` après une ancienne indexation, les retirer du suivi sans les supprimer du disque :
+
+```powershell
+git rm --cached -r .vs
+```
+
+Avant commit, vérifier que seuls les fichiers source utiles sont stagés :
+
+```powershell
+git status --short
+git diff --cached --name-only
+```
+
+
+
