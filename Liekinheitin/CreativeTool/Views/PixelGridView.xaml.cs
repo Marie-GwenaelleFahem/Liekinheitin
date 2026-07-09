@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Windows;
@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace CreativeTool.Views
+namespace Liekinheitin.CreativeTool.Views
 {
     /// <summary>
     /// Logique d'interaction pour PixelGridView.xaml
@@ -24,3 +24,4 @@ namespace CreativeTool.Views
         }
     }
 }
+
