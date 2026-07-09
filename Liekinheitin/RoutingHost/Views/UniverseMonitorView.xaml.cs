@@ -11,7 +11,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 
-namespace RoutingHost.Views
+namespace Liekinheitin.RoutingHost.Views
 {
     /// <summary>
     /// Logique d'interaction pour UniverseMonitorView.xaml

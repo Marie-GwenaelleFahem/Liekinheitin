@@ -1,12 +1,19 @@
-﻿<Window x:Class="RoutingHost.MainWindow"
+﻿<Window x:Class="Liekinheitin.RoutingHost.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:RoutingHost"
+        xmlns:local="clr-namespace:Liekinheitin.RoutingHost"
+        xmlns:views="clr-namespace:Liekinheitin.RoutingHost.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
+        Title="MainWindow" Height="450" Width="800" Background="#FF14171C">
     <Grid>
-
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <!-- moitié haute : réservée pour plus tard -->
+            <RowDefinition Height="*"/>
+            <!-- moitié basse : le patch -->
+        </Grid.RowDefinitions>
+        <views:PatchVisualizationView Grid.Row="1" Loaded="PatchVisualizationView_Loaded" />
     </Grid>
 </Window>

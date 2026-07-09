@@ -90,6 +90,56 @@ namespace Liekinheitin.Application.Services
 
             return state;
         }
+        /// <summary>
+        /// Renvoie les numéros d'univers desservis par un contrôleur donné, sans doublons, triés.
+        /// </summary>
+        /// <param name="controllerId">Identifiant du contrôleur (Controller.Id).</param>
+        /// <returns>La liste des univers utilisés par ce contrôleur.</returns>
+        public List<int> GetUniverses(string controllerId)
+        {
+            return Ranges
+                .Where(r => r.ControllerId == controllerId)
+                .Select(r => r.Universe)
+                .Distinct()
+                .OrderBy(u => u)
+                .ToList();
+        }
+
+        /// <summary>
+        /// Renvoie tous les identifiants d'entité couverts par un contrôleur et un univers donnés,
+        /// dépliés à partir des plages correspondantes.
+        /// </summary>
+        /// <param name="controllerId">Identifiant du contrôleur.</param>
+        /// <param name="universe">Univers concerné.</param>
+        /// <returns>La liste des identifiants d'entité de cette plage.</returns>
+        public List<int> GetEntityIds(string controllerId, int universe)
+        {
+            var ids = new List<int>();
+
+            foreach (var range in Ranges.Where(r => r.ControllerId == controllerId && r.Universe == universe))
+            {
+                for (int id = range.EntityIdStart; id <= range.EntityIdEnd; id++)
+                {
+                    ids.Add(id);
+                }
+            }
+
+            return ids;
+        }
+        public List<int> GetAllEntityIds(string controllerId)
+        {
+            var ids = new List<int>();
+
+            foreach (var range in Ranges.Where(r => r.ControllerId == controllerId))
+            {
+                for (int id = range.EntityIdStart; id <= range.EntityIdEnd; id++)
+                {
+                    ids.Add(id);
+                }
+            }
+
+            return ids;
+        }
 
     }
 }
