@@ -2,7 +2,7 @@
 
 Système de pilotage d'un spectacle son et lumière : conception d'animations lumineuses et diffusion en temps réel vers des contrôleurs DMX/ArtNet via le réseau.
 
-Le nom *Liekinheitin* ("allumeur de flammes" en finnois) sert d'identifiant technique à la solution.
+Le nom *Liekinheitin* ("lance flammes" en finnois) sert d'identifiant technique à la solution.
 
 ## Vue d'ensemble
 
