@@ -12,6 +12,13 @@
 /// </remarks>
 public class LogService
 {
+    /// <summary>
+    /// Instance partagée par toute l'application RoutingHost, pour que les producteurs de logs
+    /// (ArtNetSender, HeartbeatService, ControllerHealthChecker...) et l'écran de logs
+    /// (LogView) utilisent tous le même journal sans avoir à se passer l'instance explicitement.
+    /// </summary>
+    public static LogService Instance { get; } = new();
+
     private readonly List<LogEntry> _history = new();
     private readonly object _lock = new();
 
