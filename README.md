@@ -2,7 +2,7 @@
 
 Système de pilotage d'un spectacle son et lumière : conception d'animations lumineuses et diffusion en temps réel vers des contrôleurs DMX/ArtNet via le réseau.
 
-Le nom *Liekinheitin* ("allumeur de flammes" en finnois) sert d'identifiant technique à la solution.
+Le nom *Liekinheitin* ("lance flammes" en finnois) sert d'identifiant technique à la solution.
 
 ## Vue d'ensemble
 
@@ -50,7 +50,14 @@ Modèles de données purs : `Controller`, `Entity` (une LED/fixture et ses canau
 
 ## État d'avancement
 
-Les couches Domain, Application et Infrastructure sont implémentées et documentées. Les applications CreativeTool et RoutingHost existent pour l'instant sous forme de squelettes de projet (ViewModels et vues WPF encore à construire).
+Les couches Domain, Application et Infrastructure sont implémentées et documentées.
+
+**RoutingHost** :
+- ✅ `PatchVisualizationView` — visualisation du patch avec navigation par drill-down (contrôleurs → univers → LED), statut de santé en direct (ping ICMP via `ControllerHealthChecker`), et envoi manuel de couleurs de test en ArtNet réel pour vérifier le câblage sur le terrain.
+- ⬜ `UniverseMonitorView` / `MonitorViewModel` — suivi des univers actifs, dernières valeurs DMX envoyées, déclenchement de `StateFaker` (squelette de projet, pas encore implémenté).
+- ⬜ `LogView` / `LogViewModel` — affichage du journal alimenté par `LogService` (squelette de projet, pas encore implémenté).
+
+**CreativeTool** : existe pour l'instant sous forme de squelette de projet (ViewModels et vues WPF encore à construire — grille de pixels, timeline, sélecteur de couleur, lecture audio).
 
 ## Prérequis
 
