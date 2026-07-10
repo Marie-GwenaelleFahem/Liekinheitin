@@ -39,7 +39,11 @@ namespace Liekinheitin.CreativeTool.Views
             Clear();
         }
 
+        public event EventHandler? PixelDragStarted;
+
         public event EventHandler<PixelDragDeltaEventArgs>? PixelDragDelta;
+
+        public event EventHandler? PixelDragCompleted;
 
         public int WallWidth { get; }
 
@@ -146,6 +150,7 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 _lastDragPixel = pixel;
                 PreviewImage.CaptureMouse();
+                PixelDragStarted?.Invoke(this, EventArgs.Empty);
                 e.Handled = true;
             }
         }
@@ -176,7 +181,7 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void OnPreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
         {
-            EndDrag();
+            EndDrag(raiseCompleted: true);
             e.Handled = true;
         }
 
@@ -184,16 +189,22 @@ namespace Liekinheitin.CreativeTool.Views
         {
             if (e.LeftButton != MouseButtonState.Pressed)
             {
-                EndDrag();
+                EndDrag(raiseCompleted: false);
             }
         }
 
-        private void EndDrag()
+        private void EndDrag(bool raiseCompleted)
         {
+            var hadDrag = _lastDragPixel is not null;
             _lastDragPixel = null;
             if (PreviewImage.IsMouseCaptured)
             {
                 PreviewImage.ReleaseMouseCapture();
+            }
+
+            if (hadDrag && raiseCompleted)
+            {
+                PixelDragCompleted?.Invoke(this, EventArgs.Empty);
             }
         }
 

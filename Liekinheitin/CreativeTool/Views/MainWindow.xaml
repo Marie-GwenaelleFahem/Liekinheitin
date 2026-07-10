@@ -52,7 +52,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
-                <RowDefinition Height="220" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="260" MinHeight="140" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -115,7 +116,7 @@
             </Border>
 
             <Border Grid.Row="1"
-                    Grid.RowSpan="2"
+                    Grid.RowSpan="3"
                     Grid.Column="1"
                     BorderBrush="#3A3A3A"
                     BorderThickness="1,0,0,0"
@@ -206,29 +207,72 @@
                                            Foreground="#DADADA"
                                            Text="Aucun clip selectionne" />
 
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Deplacement souris" />
+                                <TextBlock x:Name="ShapeWorkflowTextBlock"
+                                           Margin="0,0,0,12"
+                                           Foreground="#AFAFAF"
+                                           Text="Clique une forme, puis déplace son arrivée pour l'animer" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Souris dans le preview" />
                                 <ComboBox x:Name="ShapeEditModeComboBox"
                                           Margin="0,4,0,12"
                                           SelectedIndex="0">
-                                    <ComboBoxItem Content="Position de la forme" Tag="Position" />
-                                    <ComboBoxItem Content="Arrivee du mouvement" Tag="Movement" />
+                                    <ComboBoxItem Content="Déplacer le départ" Tag="Position" />
+                                    <ComboBoxItem Content="Déplacer l'arrivée" Tag="Movement" />
                                 </ComboBox>
 
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Effet de mouvement" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Trajet" />
                                 <ComboBox x:Name="MovementEffectComboBox"
                                           Margin="0,4,0,8"
                                           SelectedIndex="0">
                                     <ComboBoxItem Content="Aucun" Tag="None" />
-                                    <ComboBoxItem Content="Lent" Tag="Slow" />
+                                    <ComboBoxItem Content="Instantané" Tag="Snap" />
+                                    <ComboBoxItem Content="Impact" Tag="Punch" />
+                                    <ComboBoxItem Content="Très rapide" Tag="VeryFast" />
                                     <ComboBoxItem Content="Rapide" Tag="Fast" />
+                                    <ComboBoxItem Content="Lent" Tag="Slow" />
                                     <ComboBoxItem Content="Fade" Tag="Fade" />
                                 </ComboBox>
 
-                                <TextBlock x:Name="MovementOffsetTextBlock"
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Name="MovementDurationTextBlock"
+                                                   Foreground="#AFAFAF"
+                                                   FontFamily="Consolas"
+                                                   Text="durée 0.000s" />
+                                        <TextBlock x:Name="MovementOffsetTextBlock"
+                                                   Foreground="#AFAFAF"
+                                                   FontFamily="Consolas"
+                                                   Text="arrivée dx 0 / dy 0" />
+                                    </StackPanel>
+                                    <Button x:Name="ResetMovementButton"
+                                            Grid.Column="2"
+                                            MinWidth="72"
+                                            Height="28"
+                                            Content="Remise 0" />
+                                </Grid>
+
+                                <UniformGrid Columns="3" Margin="0,0,0,14">
+                                    <Button x:Name="ReplayMotionButton"
+                                            Height="30"
+                                            Margin="0,0,6,0"
+                                            Content="Rejouer" />
+                                    <Button x:Name="RedoMotionButton"
+                                            Height="30"
+                                            Margin="0,0,6,0"
+                                            Content="Refaire" />
+                                    <Button x:Name="ConfirmMotionButton"
+                                            Height="30"
+                                            Content="Confirmer" />
+                                </UniformGrid>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}"
                                            Margin="0,0,0,12"
-                                           Foreground="#AFAFAF"
-                                           FontFamily="Consolas"
-                                           Text="dx 0 / dy 0" />
+                                           Text="Créer une barre de forme" />
 
                                 <ItemsControl x:Name="ShapesItemsControl">
                                     <ItemsControl.ItemTemplate>
@@ -248,7 +292,16 @@
                 </TabControl>
             </Border>
 
-            <Border Grid.Row="2"
+            <GridSplitter Grid.Row="2"
+                          Grid.Column="0"
+                          Height="6"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Center"
+                          Background="#2C2C2C"
+                          ResizeDirection="Rows"
+                          ResizeBehavior="PreviousAndNext" />
+
+            <Border Grid.Row="3"
                     Grid.Column="0"
                     Margin="12,0,12,12"
                     BorderBrush="#3A3A3A"
@@ -264,13 +317,42 @@
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
                             <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="8" />
+                            <ColumnDefinition Width="Auto" />
                         </Grid.ColumnDefinitions>
                         <TextBlock VerticalAlignment="Center"
                                    Foreground="#DADADA"
                                    FontWeight="SemiBold"
                                    Text="Timeline" />
+                        <StackPanel Grid.Column="1"
+                                    Orientation="Horizontal"
+                                    VerticalAlignment="Center">
+                            <TextBlock VerticalAlignment="Center"
+                                       Foreground="#BEBEBE"
+                                       FontSize="12"
+                                       Text="Duree" />
+                            <TextBox x:Name="ProjectDurationTextBox"
+                                     Width="56"
+                                     Height="24"
+                                     Margin="8,0,0,0"
+                                     Text="30" />
+                        </StackPanel>
+                        <Button x:Name="ApplyDurationButton"
+                                Grid.Column="3"
+                                MinWidth="72"
+                                Height="26"
+                                Content="Appliquer" />
+                        <Button x:Name="ExtendTimelineButton"
+                                Grid.Column="5"
+                                MinWidth="52"
+                                Height="26"
+                                Content="+10s" />
                         <Button x:Name="AddShapeLayerButton"
-                                Grid.Column="1"
+                                Grid.Column="7"
                                 MinWidth="104"
                                 Height="26"
                                 Content="+ Forme" />

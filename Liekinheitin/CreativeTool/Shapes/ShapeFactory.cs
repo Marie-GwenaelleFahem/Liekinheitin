@@ -7,10 +7,7 @@ public static class ShapeFactory
 {
     public static IReadOnlyList<IShape> CreateForClip(TimelineClip? clip, int gridWidth = 128, int gridHeight = 128)
     {
-        if (clip is null)
-        {
-            return [];
-        }
+        clip ??= new TimelineClip { Target = new TargetSelection { Type = TargetType.Selection } };
 
         return
         [

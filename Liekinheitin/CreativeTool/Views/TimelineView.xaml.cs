@@ -19,12 +19,20 @@ namespace Liekinheitin.CreativeTool.Views
         private const double TopRulerHeight = 28;
         private const double TrackHeight = 44;
         private const double TrackGap = 8;
+        private const double MinClipWidth = 96;
+        private const double ResizeHandleWidth = 8;
+        private const double MinClipDuration = 0.05;
         private const double PixelsPerSecond = 28;
 
         private ShowProject? _project;
         private TimelineClip? _selectedClip;
         private double _playheadTime;
         private Line? _playheadLine;
+        private TimelineClip? _resizingClip;
+        private ResizeEdge _resizeEdge;
+        private double _resizeStartX;
+        private double _resizeOriginalStart;
+        private double _resizeOriginalDuration;
 
         public TimelineView()
         {
@@ -33,6 +41,8 @@ namespace Liekinheitin.CreativeTool.Views
         }
 
         public event EventHandler<TimelineClip>? ClipSelected;
+
+        public event EventHandler<TimelineClip>? ClipChanged;
 
         public void SetProject(ShowProject project)
         {
@@ -155,8 +165,9 @@ namespace Liekinheitin.CreativeTool.Views
         private void DrawClip(TimelineClip clip, double trackY)
         {
             var x = TimeToX(clip.StartTime);
-            var width = Math.Max(12, clip.Duration * PixelsPerSecond);
+            var width = Math.Max(MinClipWidth, clip.Duration * PixelsPerSecond);
             var isSelected = ReferenceEquals(clip, _selectedClip);
+            var label = $"{clip.Name}  {clip.StartTime:0.#}-{clip.EndTime:0.#}s";
 
             var border = new Border
             {
@@ -167,16 +178,18 @@ namespace Liekinheitin.CreativeTool.Views
                 BorderThickness = isSelected ? new Thickness(2) : new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Tag = clip,
-                ToolTip = $"{clip.Name} - {clip.EffectType}"
+                ToolTip = $"{label} - {clip.EffectType}"
             };
             border.MouseLeftButtonDown += OnClipMouseLeftButtonDown;
+            border.MouseMove += OnClipMouseMove;
+            border.MouseLeave += OnClipMouseLeave;
 
             var text = new TextBlock
             {
                 Foreground = Brushes.White,
                 FontSize = 12,
                 Margin = new Thickness(8, 5, 8, 0),
-                Text = clip.Name,
+                Text = label,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
             border.Child = text;
@@ -220,14 +233,114 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 _selectedClip = clip;
                 ClipSelected?.Invoke(this, clip);
-                Redraw();
+
+                var edge = GetResizeEdge(sender, e);
+                if (edge != ResizeEdge.None)
+                {
+                    _resizingClip = clip;
+                    _resizeEdge = edge;
+                    _resizeStartX = e.GetPosition(TimelineCanvas).X;
+                    _resizeOriginalStart = clip.StartTime;
+                    _resizeOriginalDuration = clip.Duration;
+                    Mouse.Capture(TimelineCanvas);
+                    TimelineCanvas.MouseMove += OnTimelineCanvasMouseMove;
+                    TimelineCanvas.MouseLeftButtonUp += OnTimelineCanvasMouseLeftButtonUp;
+                }
+                else
+                {
+                    Redraw();
+                }
+
                 e.Handled = true;
             }
+        }
+
+        private void OnClipMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_resizingClip is not null)
+            {
+                return;
+            }
+
+            if (sender is FrameworkElement)
+            {
+                var edge = GetResizeEdge(sender, e);
+                Cursor = edge == ResizeEdge.None ? Cursors.Arrow : Cursors.SizeWE;
+            }
+        }
+
+        private void OnClipMouseLeave(object sender, MouseEventArgs e)
+        {
+            if (_resizingClip is null)
+            {
+                Cursor = Cursors.Arrow;
+            }
+        }
+
+        private void OnTimelineCanvasMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_resizingClip is null || _resizeEdge == ResizeEdge.None)
+            {
+                return;
+            }
+
+            var deltaSeconds = (e.GetPosition(TimelineCanvas).X - _resizeStartX) / PixelsPerSecond;
+            if (_resizeEdge == ResizeEdge.Left)
+            {
+                var originalEnd = _resizeOriginalStart + _resizeOriginalDuration;
+                var newStart = Math.Clamp(_resizeOriginalStart + deltaSeconds, 0, originalEnd - MinClipDuration);
+                _resizingClip.StartTime = newStart;
+                _resizingClip.Duration = Math.Max(MinClipDuration, originalEnd - newStart);
+            }
+            else
+            {
+                _resizingClip.Duration = Math.Max(MinClipDuration, _resizeOriginalDuration + deltaSeconds);
+            }
+
+            ClipChanged?.Invoke(this, _resizingClip);
+            Redraw();
+        }
+
+        private void OnTimelineCanvasMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            EndResize();
+            e.Handled = true;
+        }
+
+        private void EndResize()
+        {
+            if (_resizingClip is null)
+            {
+                return;
+            }
+
+            TimelineCanvas.MouseMove -= OnTimelineCanvasMouseMove;
+            TimelineCanvas.MouseLeftButtonUp -= OnTimelineCanvasMouseLeftButtonUp;
+            Mouse.Capture(null);
+            Cursor = Cursors.Arrow;
+            _resizingClip = null;
+            _resizeEdge = ResizeEdge.None;
         }
 
         private void OnTimelineMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             SelectClip(null);
+        }
+
+        private static ResizeEdge GetResizeEdge(object sender, MouseEventArgs e)
+        {
+            if (sender is not FrameworkElement element || element.ActualWidth <= 0)
+            {
+                return ResizeEdge.None;
+            }
+
+            var x = e.GetPosition(element).X;
+            if (x <= ResizeHandleWidth)
+            {
+                return ResizeEdge.Left;
+            }
+
+            return x >= element.ActualWidth - ResizeHandleWidth ? ResizeEdge.Right : ResizeEdge.None;
         }
 
         private double TimeToX(double time) => LeftGutter + (Math.Max(0, time) * PixelsPerSecond);
@@ -251,5 +364,12 @@ namespace Liekinheitin.CreativeTool.Views
             EffectType.Wave => Color.FromRgb(38, 124, 170),
             _ => Color.FromRgb(180, 72, 72)
         };
+
+        private enum ResizeEdge
+        {
+            None,
+            Left,
+            Right
+        }
     }
 }

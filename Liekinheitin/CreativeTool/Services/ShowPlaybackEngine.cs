@@ -45,12 +45,12 @@ namespace Liekinheitin.CreativeTool.Services
             int wallHeight)
         {
             var localTime = currentTime - clip.StartTime;
-            var movementProgress = MovementProgress(clip, localTime);
+            var movementOffset = ResolveMovementOffset(clip, localTime);
             var movementIntensity = MovementIntensity(clip, localTime);
 
             foreach (var entityId in ResolveTargets(clip, totalPixels))
             {
-                var targetEntityId = ApplyMovement(entityId, clip, movementProgress, wallWidth, wallHeight);
+                var targetEntityId = ApplyMovement(entityId, clip, movementOffset.OffsetX, movementOffset.OffsetY, wallWidth, wallHeight);
                 if (targetEntityId is null)
                 {
                     continue;
@@ -86,17 +86,17 @@ namespace Liekinheitin.CreativeTool.Services
             return color;
         }
 
-        private static int? ApplyMovement(int entityId, TimelineClip clip, double progress, int wallWidth, int wallHeight)
+        private static int? ApplyMovement(int entityId, TimelineClip clip, int offsetX, int offsetY, int wallWidth, int wallHeight)
         {
-            if (clip.Target.Type != TargetType.Selection || clip.MovementEffect == MovementEffectType.None)
+            if (clip.Target.Type != TargetType.Selection)
             {
                 return entityId;
             }
 
             var x = entityId % wallWidth;
             var y = entityId / wallWidth;
-            var movedX = x + (int)Math.Round(clip.MovementOffsetX * progress);
-            var movedY = y + (int)Math.Round(clip.MovementOffsetY * progress);
+            var movedX = x + offsetX;
+            var movedY = y + offsetY;
 
             if (movedX < 0 || movedX >= wallWidth || movedY < 0 || movedY >= wallHeight)
             {
@@ -104,6 +104,57 @@ namespace Liekinheitin.CreativeTool.Services
             }
 
             return (movedY * wallWidth) + movedX;
+        }
+
+        private static (int OffsetX, int OffsetY) ResolveMovementOffset(TimelineClip clip, double localTime)
+        {
+            if (clip.Target.Type != TargetType.Selection)
+            {
+                return (0, 0);
+            }
+
+            if (clip.MovementKeyframes.Count > 0)
+            {
+                return InterpolateKeyframes(clip, localTime);
+            }
+
+            if (clip.MovementEffect == MovementEffectType.None)
+            {
+                return (0, 0);
+            }
+
+            var progress = MovementProgress(clip, localTime);
+            return (
+                (int)Math.Round(clip.MovementOffsetX * progress),
+                (int)Math.Round(clip.MovementOffsetY * progress));
+        }
+
+        private static (int OffsetX, int OffsetY) InterpolateKeyframes(TimelineClip clip, double localTime)
+        {
+            var keyframes = clip.MovementKeyframes.OrderBy(keyframe => keyframe.Time).ToList();
+            if (localTime <= keyframes[0].Time)
+            {
+                return (keyframes[0].OffsetX, keyframes[0].OffsetY);
+            }
+
+            for (var index = 1; index < keyframes.Count; index++)
+            {
+                var previous = keyframes[index - 1];
+                var next = keyframes[index];
+                if (localTime > next.Time)
+                {
+                    continue;
+                }
+
+                var span = Math.Max(0.001, next.Time - previous.Time);
+                var progress = Math.Clamp((localTime - previous.Time) / span, 0, 1);
+                return (
+                    (int)Math.Round(previous.OffsetX + ((next.OffsetX - previous.OffsetX) * progress)),
+                    (int)Math.Round(previous.OffsetY + ((next.OffsetY - previous.OffsetY) * progress)));
+            }
+
+            var last = keyframes[^1];
+            return (last.OffsetX, last.OffsetY);
         }
 
         private static double MovementProgress(TimelineClip clip, double localTime)
@@ -116,8 +167,11 @@ namespace Liekinheitin.CreativeTool.Services
             var progress = Math.Clamp(localTime / clip.Duration, 0, 1);
             return clip.MovementEffect switch
             {
+                MovementEffectType.Snap => progress <= 0 ? 0 : 1,
+                MovementEffectType.Punch => progress < 0.18 ? progress / 0.18 : 1,
+                MovementEffectType.VeryFast => 1 - Math.Pow(1 - progress, 5),
                 MovementEffectType.Slow => progress * progress,
-                MovementEffectType.Fast => 1 - Math.Pow(1 - progress, 2),
+                MovementEffectType.Fast => 1 - Math.Pow(1 - progress, 3),
                 _ => progress
             };
         }

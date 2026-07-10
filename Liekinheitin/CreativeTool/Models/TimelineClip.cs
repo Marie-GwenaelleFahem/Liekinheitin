@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Liekinheitin.CreativeTool.Models
 {
     public class TimelineClip
@@ -23,6 +25,10 @@ namespace Liekinheitin.CreativeTool.Models
         public int MovementOffsetX { get; set; }
 
         public int MovementOffsetY { get; set; }
+
+        public bool IsMotionDraft { get; set; }
+
+        public List<MovementKeyframe> MovementKeyframes { get; set; } = new();
 
         public double EndTime => StartTime + Duration;
     }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Windows;
@@ -32,7 +33,12 @@ namespace Liekinheitin.CreativeTool.Views
 
         private ShowProject _project;
         private TimelineClip? _selectedClip;
+        private TimelineClip? _recordingClip;
         private IReadOnlyList<IShape> _availableShapes = Array.Empty<IShape>();
+        private readonly Stopwatch _motionCaptureClock = new();
+        private readonly Stopwatch _motionUiClock = new();
+        private int _recordingOffsetX;
+        private int _recordingOffsetY;
         private string? _projectPath;
         private bool _isDirty;
         private bool _isUpdatingPlaybackUi;
@@ -56,10 +62,20 @@ namespace Liekinheitin.CreativeTool.Views
             StopButton.Click += OnStopClick;
             TimeSlider.ValueChanged += OnTimeSliderValueChanged;
             TimelineControl.ClipSelected += OnTimelineClipSelected;
+            TimelineControl.ClipChanged += OnTimelineClipChanged;
             ApplyPropertiesButton.Click += OnApplyPropertiesClick;
+            ApplyDurationButton.Click += OnApplyDurationClick;
+            ExtendTimelineButton.Click += OnExtendTimelineClick;
             AddShapeLayerButton.Click += OnAddShapeLayerClick;
+            LedPreview.PixelDragStarted += OnPreviewPixelDragStarted;
             LedPreview.PixelDragDelta += OnPreviewPixelDragDelta;
+            LedPreview.PixelDragCompleted += OnPreviewPixelDragCompleted;
+            ShapeEditModeComboBox.SelectionChanged += OnShapeEditModeSelectionChanged;
             MovementEffectComboBox.SelectionChanged += OnMovementEffectSelectionChanged;
+            ResetMovementButton.Click += OnResetMovementClick;
+            ReplayMotionButton.Click += OnReplayMotionClick;
+            RedoMotionButton.Click += OnRedoMotionClick;
+            ConfirmMotionButton.Click += OnConfirmMotionClick;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
             _playbackController.StateChanged += (_, _) => UpdatePlaybackUi();
 
@@ -148,6 +164,8 @@ namespace Liekinheitin.CreativeTool.Views
             _selectedClip.Intensity = Math.Clamp(IntensitySlider.Value, 0, 1);
             _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0, 4);
             _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
+            EnsureProjectDurationIncludesClips();
+            EnsurePlaybackInsideClip(_selectedClip);
 
             MarkDirty();
             TimelineControl.Redraw();
@@ -156,7 +174,7 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void OnShapeButtonClick(object sender, RoutedEventArgs e)
         {
-            if (sender is not FrameworkElement { Tag: IShape shape } || _selectedClip is null)
+            if (sender is not FrameworkElement { Tag: IShape shape })
             {
                 return;
             }
@@ -166,22 +184,90 @@ namespace Liekinheitin.CreativeTool.Views
                 .Distinct()
                 .ToList();
 
-            _selectedClip.Target.Type = TargetType.Selection;
-            _selectedClip.Target.EntityIds = entityIds;
-            _selectedClip.MovementOffsetX = 0;
-            _selectedClip.MovementOffsetY = 0;
-            _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
-            SelectComboByTag(TargetTypeComboBox, TargetType.Selection.ToString());
-            UpdateMovementOffsetText(_selectedClip);
+            var clip = GetReusableEmptyShapeClip() ?? CreateShapeClip(shape.DisplayName);
+            clip.Name = shape.DisplayName;
+            clip.Target.Type = TargetType.Selection;
+            clip.Target.EntityIds = entityIds;
+            clip.MovementOffsetX = 0;
+            clip.MovementOffsetY = 0;
+            clip.MovementEffect = ReadComboTag(MovementEffectComboBox, clip.MovementEffect);
+            _selectedClip = clip;
 
-            if (_playbackController.CurrentTime < _selectedClip.StartTime || _playbackController.CurrentTime > _selectedClip.EndTime)
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            SelectComboByTag(ShapeEditModeComboBox, "Movement");
+            UpdatePropertyPanel(clip);
+            SelectComboByTag(TargetTypeComboBox, TargetType.Selection.ToString());
+            UpdateShapeMotionUi(clip);
+
+            if (_playbackController.CurrentTime < clip.StartTime || _playbackController.CurrentTime > clip.EndTime)
             {
-                _playbackController.Seek(_selectedClip.StartTime);
+                _playbackController.Seek(clip.StartTime);
                 TimelineControl.SetPlayhead(_playbackController.CurrentTime);
             }
 
             MarkDirty();
             RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnPreviewPixelDragCompleted(object? sender, EventArgs e)
+        {
+            if (_recordingClip is not null)
+            {
+                EndMotionCapture(replay: false);
+                return;
+            }
+
+            if (_selectedClip is null || !IsEditingMovementTarget())
+            {
+                return;
+            }
+
+            if (_selectedClip.MovementEffect == MovementEffectType.None
+                || (_selectedClip.MovementOffsetX == 0 && _selectedClip.MovementOffsetY == 0))
+            {
+                return;
+            }
+
+            _playbackController.Seek(_selectedClip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            RenderPreview(_playbackController.CurrentTime);
+            _playbackController.Play();
+        }
+
+        private void OnPreviewPixelDragStarted(object? sender, EventArgs e)
+        {
+            if (_selectedClip?.Target.Type != TargetType.Selection || _selectedClip.Target.EntityIds.Count == 0)
+            {
+                return;
+            }
+
+            if (!IsEditingMovementTarget())
+            {
+                return;
+            }
+
+            BeginMotionCapture(_selectedClip);
+        }
+
+        private void OnApplyDurationClick(object sender, RoutedEventArgs e)
+        {
+            SetProjectDuration(ReadDouble(ProjectDurationTextBox, _project.Duration), markDirty: true);
+        }
+
+        private void OnTimelineClipChanged(object? sender, TimelineClip clip)
+        {
+            _selectedClip = clip;
+            EnsureProjectDurationIncludesClips();
+            EnsurePlaybackInsideClip(clip);
+            UpdatePropertyPanel(clip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnExtendTimelineClick(object sender, RoutedEventArgs e)
+        {
+            SetProjectDuration(_project.Duration + 10, markDirty: true);
         }
 
         private void OnAddShapeLayerClick(object sender, RoutedEventArgs e)
@@ -222,12 +308,18 @@ namespace Liekinheitin.CreativeTool.Views
                 return;
             }
 
+            if (_recordingClip is not null)
+            {
+                RecordMotionDelta(e.DeltaX, e.DeltaY);
+                return;
+            }
+
             if (IsEditingMovementTarget())
             {
                 MoveMovementTarget(_selectedClip, e.DeltaX, e.DeltaY);
                 MarkDirty();
                 SeekToMovementPreviewTime(_selectedClip);
-                UpdateMovementOffsetText(_selectedClip);
+                UpdateShapeMotionUi(_selectedClip);
                 RenderPreview(_playbackController.CurrentTime);
                 return;
             }
@@ -240,9 +332,49 @@ namespace Liekinheitin.CreativeTool.Views
 
             _selectedClip.Target.EntityIds = movedEntityIds;
             ClampMovementTarget(_selectedClip);
-            UpdateMovementOffsetText(_selectedClip);
+            UpdateShapeMotionUi(_selectedClip);
             MarkDirty();
             RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnReplayMotionClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip is null)
+            {
+                return;
+            }
+
+            ReplayClip(_selectedClip);
+        }
+
+        private void OnRedoMotionClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip is null)
+            {
+                return;
+            }
+
+            ClearMotion(_selectedClip);
+            SelectComboByTag(ShapeEditModeComboBox, "Movement");
+            _playbackController.Seek(_selectedClip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            UpdateShapeMotionUi(_selectedClip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnConfirmMotionClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip is null)
+            {
+                return;
+            }
+
+            _selectedClip.IsMotionDraft = false;
+            _recordingClip = null;
+            _motionCaptureClock.Reset();
+            UpdateShapeMotionUi(_selectedClip);
+            MarkDirty();
         }
 
         private void OnMovementEffectSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -254,6 +386,46 @@ namespace Liekinheitin.CreativeTool.Views
 
             _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
             MarkDirty();
+            UpdateShapeMotionUi(_selectedClip);
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnResetMovementClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip is null)
+            {
+                return;
+            }
+
+            _selectedClip.MovementOffsetX = 0;
+            _selectedClip.MovementOffsetY = 0;
+            _selectedClip.MovementEffect = MovementEffectType.None;
+            SelectComboByTag(MovementEffectComboBox, _selectedClip.MovementEffect.ToString());
+            _playbackController.Seek(_selectedClip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            UpdateShapeMotionUi(_selectedClip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnShapeEditModeSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingPropertyUi || _selectedClip is null)
+            {
+                return;
+            }
+
+            if (IsEditingMovementTarget())
+            {
+                SeekToMovementPreviewTime(_selectedClip);
+            }
+            else
+            {
+                _playbackController.Seek(_selectedClip.StartTime);
+                TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            }
+
+            UpdateShapeMotionUi(_selectedClip);
             RenderPreview(_playbackController.CurrentTime);
         }
 
@@ -342,6 +514,7 @@ namespace Liekinheitin.CreativeTool.Views
 
             _playbackController.Duration = Math.Max(1, project.Duration);
             TimeSlider.Maximum = _playbackController.Duration;
+            ProjectDurationTextBox.Text = _playbackController.Duration.ToString("0.###", CultureInfo.InvariantCulture);
             TimelineControl.SetProject(project);
             TimelineControl.SelectClip(_selectedClip);
             UpdatePropertyPanel(_selectedClip);
@@ -372,12 +545,16 @@ namespace Liekinheitin.CreativeTool.Views
             ColorPickerControl.IsEnabled = enabled;
             ShapeEditModeComboBox.IsEnabled = enabled;
             MovementEffectComboBox.IsEnabled = enabled;
+            ResetMovementButton.IsEnabled = enabled;
+            ReplayMotionButton.IsEnabled = enabled;
+            RedoMotionButton.IsEnabled = enabled;
+            ConfirmMotionButton.IsEnabled = enabled;
 
             if (clip is null)
             {
                 ClipNameTextBox.Text = string.Empty;
                 ColorPickerControl.SetColor(RgbwColor.White);
-                MovementOffsetTextBlock.Text = "dx 0 / dy 0";
+                UpdateShapeMotionUi(null);
                 _isUpdatingPropertyUi = false;
                 return;
             }
@@ -395,7 +572,7 @@ namespace Liekinheitin.CreativeTool.Views
             IntensitySlider.Value = clip.Intensity;
             SpeedSlider.Value = clip.Speed;
             SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
-            UpdateMovementOffsetText(clip);
+            UpdateShapeMotionUi(clip);
             _isUpdatingPropertyUi = false;
         }
 
@@ -403,11 +580,11 @@ namespace Liekinheitin.CreativeTool.Views
         {
             _availableShapes = ShapeFactory.CreateForClip(clip, _project.WallWidth, _project.WallHeight);
             ShapesItemsControl.ItemsSource = _availableShapes;
-            ShapesTab.IsEnabled = clip is not null;
+            ShapesTab.IsEnabled = true;
             ShapesClipTextBlock.Text = clip is null
-                ? "Aucun clip selectionne"
+                ? "Clique une forme pour créer une barre"
                 : $"Formes pour le clip : {clip.Name}";
-            UpdateMovementOffsetText(clip);
+            UpdateShapeMotionUi(clip);
         }
 
         private void UpdatePlaybackUi()
@@ -418,6 +595,42 @@ namespace Liekinheitin.CreativeTool.Views
             TimeDisplayText.Text = $"{FormatTime(_playbackController.CurrentTime)} / {FormatTime(_playbackController.Duration)}";
             PlaybackStatusItem.Content = GetStatusText(_playbackController.Status);
             _isUpdatingPlaybackUi = false;
+        }
+
+        private void SetProjectDuration(double duration, bool markDirty)
+        {
+            var boundedDuration = Math.Max(Math.Max(1, duration), GetMaxClipEnd(_project));
+            _project.Duration = boundedDuration;
+            _playbackController.Duration = boundedDuration;
+            TimeSlider.Maximum = boundedDuration;
+            ProjectDurationTextBox.Text = boundedDuration.ToString("0.###", CultureInfo.InvariantCulture);
+            TimelineControl.Redraw();
+            UpdatePlaybackUi();
+
+            if (markDirty)
+            {
+                MarkDirty();
+            }
+        }
+
+        private void EnsureProjectDurationIncludesClips()
+        {
+            var maxClipEnd = GetMaxClipEnd(_project);
+            if (maxClipEnd > _project.Duration)
+            {
+                SetProjectDuration(maxClipEnd, markDirty: false);
+            }
+        }
+
+        private void EnsurePlaybackInsideClip(TimelineClip clip)
+        {
+            if (_playbackController.CurrentTime >= clip.StartTime && _playbackController.CurrentTime <= clip.EndTime)
+            {
+                return;
+            }
+
+            _playbackController.Seek(clip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
         }
 
         private void UpdateProjectStatus()
@@ -540,6 +753,194 @@ namespace Liekinheitin.CreativeTool.Views
             return null;
         }
 
+        private static double GetMaxClipEnd(ShowProject project)
+            => project.Tracks
+                .SelectMany(track => track.Clips)
+                .Select(clip => clip.EndTime)
+                .DefaultIfEmpty(1)
+                .Max();
+
+        private TimelineClip? GetReusableEmptyShapeClip()
+        {
+            if (_selectedClip is null || _selectedClip.Target.Type != TargetType.Selection || _selectedClip.Target.EntityIds.Count > 0)
+            {
+                return null;
+            }
+
+            return FindTrackContainingClip(_selectedClip)?.Name.StartsWith("Forme", StringComparison.OrdinalIgnoreCase) == true
+                ? _selectedClip
+                : null;
+        }
+
+        private TimelineClip CreateShapeClip(string shapeName)
+        {
+            var track = FindPreferredShapeTrack();
+            var startTime = Math.Min(_playbackController.CurrentTime, Math.Max(0, _project.Duration - 1));
+            var clip = new TimelineClip
+            {
+                Name = shapeName,
+                StartTime = startTime,
+                Duration = 1,
+                EffectType = EffectType.SolidColor,
+                Target = new TargetSelection { Type = TargetType.Selection },
+                MovementEffect = ReadComboTag(MovementEffectComboBox, MovementEffectType.None),
+                Color = RgbwColor.White,
+                Intensity = 1,
+                IsMotionDraft = true
+            };
+
+            track.Clips.Add(clip);
+            EnsureProjectDurationIncludesClips();
+            return clip;
+        }
+
+        private Track FindPreferredShapeTrack()
+        {
+            var selectedTrack = _selectedClip is null ? null : FindTrackContainingClip(_selectedClip);
+            if (selectedTrack?.Name.StartsWith("Forme", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                return selectedTrack;
+            }
+
+            var shapeTrack = _project.Tracks.FirstOrDefault(track => track.Name.StartsWith("Forme", StringComparison.OrdinalIgnoreCase));
+            if (shapeTrack is not null)
+            {
+                return shapeTrack;
+            }
+
+            shapeTrack = new Track { Name = "Forme" };
+            _project.Tracks.Add(shapeTrack);
+            return shapeTrack;
+        }
+
+        private Track? FindTrackContainingClip(TimelineClip clip)
+            => _project.Tracks.FirstOrDefault(track => track.Clips.Contains(clip));
+
+        private void BeginMotionCapture(TimelineClip clip)
+        {
+            _playbackController.Pause();
+            _recordingClip = clip;
+            _recordingOffsetX = 0;
+            _recordingOffsetY = 0;
+            clip.IsMotionDraft = true;
+            clip.MovementOffsetX = 0;
+            clip.MovementOffsetY = 0;
+            clip.MovementEffect = MovementEffectType.VeryFast;
+            clip.MovementKeyframes.Clear();
+            clip.MovementKeyframes.Add(new MovementKeyframe { Time = 0, OffsetX = 0, OffsetY = 0 });
+            _motionCaptureClock.Restart();
+            _motionUiClock.Restart();
+
+            SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
+            _playbackController.Seek(clip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            TimelineControl.SelectClip(clip);
+            UpdateShapeMotionUi(clip);
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void RecordMotionDelta(int deltaX, int deltaY)
+        {
+            if (_recordingClip is null)
+            {
+                return;
+            }
+
+            var offset = ClampMovementOffset(_recordingClip, _recordingOffsetX + deltaX, _recordingOffsetY + deltaY);
+            _recordingOffsetX = offset.OffsetX;
+            _recordingOffsetY = offset.OffsetY;
+
+            var time = Math.Max(0.001, _motionCaptureClock.Elapsed.TotalSeconds);
+            _recordingClip.Duration = Math.Max(0.05, time);
+            _recordingClip.MovementOffsetX = _recordingOffsetX;
+            _recordingClip.MovementOffsetY = _recordingOffsetY;
+            AddOrUpdateMotionKeyframe(_recordingClip, time, _recordingOffsetX, _recordingOffsetY);
+            EnsureProjectDurationIncludesClips();
+
+            var previewTime = _recordingClip.StartTime + time;
+            _playbackController.Seek(previewTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            UpdateMotionCaptureUi(_recordingClip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void UpdateMotionCaptureUi(TimelineClip clip)
+        {
+            MovementDurationTextBlock.Text = $"durée {clip.Duration:0.000}s";
+            MovementOffsetTextBlock.Text = $"{clip.MovementKeyframes.Count} points enregistrés";
+
+            if (_motionUiClock.ElapsedMilliseconds < 90)
+            {
+                return;
+            }
+
+            ClipDurationTextBox.Text = clip.Duration.ToString("0.###", CultureInfo.InvariantCulture);
+            TimelineControl.Redraw();
+            _motionUiClock.Restart();
+        }
+
+        private void EndMotionCapture(bool replay)
+        {
+            if (_recordingClip is null)
+            {
+                return;
+            }
+
+            var clip = _recordingClip;
+            _recordingClip = null;
+            _motionCaptureClock.Stop();
+            _motionUiClock.Reset();
+
+            if (clip.MovementKeyframes.Count == 1)
+            {
+                clip.MovementKeyframes.Clear();
+                clip.MovementOffsetX = 0;
+                clip.MovementOffsetY = 0;
+            }
+
+            UpdatePropertyPanel(clip);
+            TimelineControl.Redraw();
+            RenderPreview(_playbackController.CurrentTime);
+
+            if (replay)
+            {
+                ReplayClip(clip);
+            }
+        }
+
+        private void AddOrUpdateMotionKeyframe(TimelineClip clip, double time, int offsetX, int offsetY)
+        {
+            var last = clip.MovementKeyframes.LastOrDefault();
+            if (last is not null && time - last.Time < 0.03)
+            {
+                last.Time = time;
+                last.OffsetX = offsetX;
+                last.OffsetY = offsetY;
+                return;
+            }
+
+            clip.MovementKeyframes.Add(new MovementKeyframe { Time = time, OffsetX = offsetX, OffsetY = offsetY });
+        }
+
+        private void ReplayClip(TimelineClip clip)
+        {
+            _playbackController.Seek(clip.StartTime);
+            TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            RenderPreview(_playbackController.CurrentTime);
+            _playbackController.Play();
+        }
+
+        private void ClearMotion(TimelineClip clip)
+        {
+            clip.MovementKeyframes.Clear();
+            clip.MovementOffsetX = 0;
+            clip.MovementOffsetY = 0;
+            clip.MovementEffect = MovementEffectType.None;
+            clip.IsMotionDraft = true;
+            SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
+        }
+
         private List<int>? MoveSelection(IReadOnlyCollection<int> entityIds, int deltaX, int deltaY)
         {
             var points = entityIds
@@ -572,27 +973,29 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void MoveMovementTarget(TimelineClip clip, int deltaX, int deltaY)
         {
-            var bounds = GetSelectionBounds(clip.Target.EntityIds);
-            if (bounds is null)
-            {
-                return;
-            }
-
-            var (minX, maxX, minY, maxY) = bounds.Value;
-            clip.MovementOffsetX = Math.Clamp(
-                clip.MovementOffsetX + deltaX,
-                -minX,
-                _project.WallWidth - 1 - maxX);
-            clip.MovementOffsetY = Math.Clamp(
-                clip.MovementOffsetY + deltaY,
-                -minY,
-                _project.WallHeight - 1 - maxY);
+            var offset = ClampMovementOffset(clip, clip.MovementOffsetX + deltaX, clip.MovementOffsetY + deltaY);
+            clip.MovementOffsetX = offset.OffsetX;
+            clip.MovementOffsetY = offset.OffsetY;
 
             if (clip.MovementEffect == MovementEffectType.None)
             {
-                clip.MovementEffect = MovementEffectType.Slow;
+                clip.MovementEffect = MovementEffectType.VeryFast;
                 SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
             }
+        }
+
+        private (int OffsetX, int OffsetY) ClampMovementOffset(TimelineClip clip, int offsetX, int offsetY)
+        {
+            var bounds = GetSelectionBounds(clip.Target.EntityIds);
+            if (bounds is null)
+            {
+                return (0, 0);
+            }
+
+            var (minX, maxX, minY, maxY) = bounds.Value;
+            return (
+                Math.Clamp(offsetX, -minX, _project.WallWidth - 1 - maxX),
+                Math.Clamp(offsetY, -minY, _project.WallHeight - 1 - maxY));
         }
 
         private void ClampMovementTarget(TimelineClip clip)
@@ -624,11 +1027,26 @@ namespace Liekinheitin.CreativeTool.Views
             => ShapeEditModeComboBox.SelectedItem is ComboBoxItem { Tag: string tag }
                && string.Equals(tag, "Movement", StringComparison.Ordinal);
 
-        private void UpdateMovementOffsetText(TimelineClip? clip)
+        private void UpdateShapeMotionUi(TimelineClip? clip)
         {
-            MovementOffsetTextBlock.Text = clip is null
-                ? "dx 0 / dy 0"
-                : $"dx {clip.MovementOffsetX} / dy {clip.MovementOffsetY}";
+            if (clip is null)
+            {
+                ShapeWorkflowTextBlock.Text = "Clique une forme pour créer une barre dans la timeline";
+                MovementDurationTextBlock.Text = "durée 0.000s";
+                MovementOffsetTextBlock.Text = "arrivée dx 0 / dy 0";
+                return;
+            }
+
+            var hasShape = clip.Target.Type == TargetType.Selection && clip.Target.EntityIds.Count > 0;
+            var mode = IsEditingMovementTarget() ? "Arrivée" : "Départ";
+            var captureState = clip.IsMotionDraft ? "prise en cours" : "confirmé";
+            ShapeWorkflowTextBlock.Text = hasShape
+                ? $"{mode} éditable - {captureState}"
+                : "Choisis une forme pour créer sa barre";
+            MovementDurationTextBlock.Text = $"durée {clip.Duration:0.000}s";
+            MovementOffsetTextBlock.Text = clip.MovementKeyframes.Count > 0
+                ? $"{clip.MovementKeyframes.Count} points enregistrés"
+                : $"arrivée dx {clip.MovementOffsetX} / dy {clip.MovementOffsetY}";
         }
 
         private (int MinX, int MaxX, int MinY, int MaxY)? GetSelectionBounds(IReadOnlyCollection<int> entityIds)
