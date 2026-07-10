@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,6 +29,7 @@ namespace Liekinheitin.CreativeTool.Views
         private readonly PlaybackController _playbackController = new();
         private readonly ProjectFileService _projectFileService = new();
         private readonly ShowPlaybackEngine _playbackEngine = new();
+        private readonly AudioPlaybackService _audioPlaybackService = new();
         private readonly IStatePublisher _statePublisher;
         private readonly DispatcherTimer _playbackTimer;
 
@@ -43,6 +45,7 @@ namespace Liekinheitin.CreativeTool.Views
         private bool _isDirty;
         private bool _isUpdatingPlaybackUi;
         private bool _isUpdatingPropertyUi;
+        private bool _isUpdatingAudioUi;
 
         public MainWindow()
         {
@@ -67,6 +70,9 @@ namespace Liekinheitin.CreativeTool.Views
             ApplyDurationButton.Click += OnApplyDurationClick;
             ExtendTimelineButton.Click += OnExtendTimelineClick;
             AddShapeLayerButton.Click += OnAddShapeLayerClick;
+            SelectAudioButton.Click += OnSelectAudioClick;
+            ConfirmAudioButton.Click += OnConfirmAudioClick;
+            AudioVolumeSlider.ValueChanged += OnAudioVolumeChanged;
             LedPreview.PixelDragStarted += OnPreviewPixelDragStarted;
             LedPreview.PixelDragDelta += OnPreviewPixelDragDelta;
             LedPreview.PixelDragCompleted += OnPreviewPixelDragCompleted;
@@ -77,7 +83,12 @@ namespace Liekinheitin.CreativeTool.Views
             RedoMotionButton.Click += OnRedoMotionClick;
             ConfirmMotionButton.Click += OnConfirmMotionClick;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
-            _playbackController.StateChanged += (_, _) => UpdatePlaybackUi();
+            _playbackController.StateChanged += (_, _) =>
+            {
+                SyncAudioPlayback();
+                UpdatePlaybackUi();
+            };
+            _audioPlaybackService.MediaOpened += OnAudioMediaOpened;
 
             LoadProjectIntoUi(_project, null, markDirty: false);
             _playbackTimer.Start();
@@ -89,6 +100,8 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 disposable.Dispose();
             }
+
+            _audioPlaybackService.Dispose();
 
             base.OnClosed(e);
         }
@@ -115,6 +128,7 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             _playbackController.Seek(e.NewValue);
+            _audioPlaybackService.Seek(e.NewValue);
             TimelineControl.SetPlayhead(_playbackController.CurrentTime);
             RenderPreview(_playbackController.CurrentTime);
         }
@@ -124,6 +138,71 @@ namespace Liekinheitin.CreativeTool.Views
         private void OnPauseClick(object sender, RoutedEventArgs e) => _playbackController.Pause();
 
         private void OnStopClick(object sender, RoutedEventArgs e) => _playbackController.Stop();
+
+        private void OnSelectAudioClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "MP3 (*.mp3)|*.mp3|Tous les fichiers audio (*.mp3;*.wav;*.wma)|*.mp3;*.wav;*.wma|Tous les fichiers (*.*)|*.*",
+                DefaultExt = ".mp3"
+            };
+
+            if (dialog.ShowDialog(this) != true)
+            {
+                return;
+            }
+
+            _project.AudioFilePath = dialog.FileName;
+            _audioPlaybackService.Load(dialog.FileName);
+            _audioPlaybackService.Seek(_playbackController.CurrentTime);
+            SyncAudioPlayback();
+            UpdateAudioUi();
+            MarkDirty();
+        }
+
+        private void OnAudioVolumeChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (_isUpdatingAudioUi)
+            {
+                return;
+            }
+
+            var volume = Math.Clamp(e.NewValue, 0, 1);
+            _project.AudioVolume = volume;
+            _audioPlaybackService.Volume = volume;
+            UpdateAudioUi();
+            MarkDirty();
+        }
+
+        private void OnConfirmAudioClick(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_project.AudioFilePath))
+            {
+                MessageBox.Show(this, "Choisis d'abord un fichier MP3.", "Musique", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var clip = AddOrUpdateAudioClip();
+            _selectedClip = clip;
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            UpdatePropertyPanel(clip);
+            EnsureProjectDurationIncludesClips();
+            MarkDirty();
+        }
+
+        private void OnAudioMediaOpened(object? sender, EventArgs e)
+        {
+            var audioClip = FindAudioClip();
+            if (audioClip is null || _audioPlaybackService.DurationSeconds is not { } duration || duration <= 0)
+            {
+                return;
+            }
+
+            audioClip.Duration = duration;
+            EnsureProjectDurationIncludesClips();
+            TimelineControl.Redraw();
+        }
 
         private void OnTimelineClipSelected(object? sender, TimelineClip clip)
         {
@@ -154,6 +233,15 @@ namespace Liekinheitin.CreativeTool.Views
             _selectedClip.Name = ClipNameTextBox.Text.Trim();
             _selectedClip.StartTime = ReadDouble(ClipStartTextBox, _selectedClip.StartTime);
             _selectedClip.Duration = Math.Max(0.001, ReadDouble(ClipDurationTextBox, _selectedClip.Duration));
+
+            if (_selectedClip.IsAudio)
+            {
+                EnsureProjectDurationIncludesClips();
+                MarkDirty();
+                TimelineControl.Redraw();
+                return;
+            }
+
             _selectedClip.EffectType = ReadComboTag(EffectTypeComboBox, _selectedClip.EffectType);
             _selectedClip.Target.Type = ReadComboTag(TargetTypeComboBox, _selectedClip.Target.Type);
             _selectedClip.Color = new RgbwColor(
@@ -513,6 +601,7 @@ namespace Liekinheitin.CreativeTool.Views
             _selectedClip = FindFirstClip(project);
 
             _playbackController.Duration = Math.Max(1, project.Duration);
+            LoadAudioFromProject();
             TimeSlider.Maximum = _playbackController.Duration;
             ProjectDurationTextBox.Text = _playbackController.Duration.ToString("0.###", CultureInfo.InvariantCulture);
             TimelineControl.SetProject(project);
@@ -522,6 +611,81 @@ namespace Liekinheitin.CreativeTool.Views
             UpdatePlaybackUi();
             UpdateProjectStatus();
         }
+
+        private void LoadAudioFromProject()
+        {
+            _audioPlaybackService.Stop();
+            _project.AudioVolume = Math.Clamp(_project.AudioVolume, 0, 1);
+            _audioPlaybackService.Volume = _project.AudioVolume;
+
+            if (!string.IsNullOrWhiteSpace(_project.AudioFilePath) && File.Exists(_project.AudioFilePath))
+            {
+                _audioPlaybackService.Load(_project.AudioFilePath);
+            }
+            else
+            {
+                _audioPlaybackService.Clear();
+            }
+
+            UpdateAudioUi();
+        }
+
+        private TimelineClip AddOrUpdateAudioClip()
+        {
+            var track = FindAudioTrack();
+            if (track is null)
+            {
+                track = new Track { Name = "Musique" };
+                _project.Tracks.Insert(0, track);
+            }
+
+            var clip = track.Clips.FirstOrDefault(item => item.IsAudio);
+            var audioName = Path.GetFileNameWithoutExtension(_project.AudioFilePath) ?? "Musique";
+            var duration = GetAudioClipDuration();
+
+            if (clip is null)
+            {
+                clip = new TimelineClip
+                {
+                    IsAudio = true,
+                    Name = audioName,
+                    StartTime = 0,
+                    Duration = duration,
+                    Target = new TargetSelection { Type = TargetType.Selection },
+                    Intensity = 0
+                };
+                track.Clips.Add(clip);
+            }
+            else
+            {
+                clip.IsAudio = true;
+                clip.Name = audioName;
+                clip.StartTime = 0;
+                clip.Duration = duration;
+                clip.Target.Type = TargetType.Selection;
+                clip.Target.EntityIds.Clear();
+                clip.Intensity = 0;
+            }
+
+            return clip;
+        }
+
+        private double GetAudioClipDuration()
+        {
+            if (_audioPlaybackService.DurationSeconds is { } duration && duration > 0)
+            {
+                return duration;
+            }
+
+            return Math.Max(1, _project.Duration);
+        }
+
+        private Track? FindAudioTrack()
+            => _project.Tracks.FirstOrDefault(track => track.Clips.Any(clip => clip.IsAudio))
+               ?? _project.Tracks.FirstOrDefault(track => string.Equals(track.Name, "Musique", StringComparison.OrdinalIgnoreCase));
+
+        private TimelineClip? FindAudioClip()
+            => _project.Tracks.SelectMany(track => track.Clips).FirstOrDefault(clip => clip.IsAudio);
 
         private void UpdatePropertyPanel(TimelineClip? clip)
         {
@@ -559,6 +723,23 @@ namespace Liekinheitin.CreativeTool.Views
                 return;
             }
 
+            var isAudioClip = clip.IsAudio;
+            EffectTypeComboBox.IsEnabled = enabled && !isAudioClip;
+            TargetTypeComboBox.IsEnabled = enabled && !isAudioClip;
+            RedTextBox.IsEnabled = enabled && !isAudioClip;
+            GreenTextBox.IsEnabled = enabled && !isAudioClip;
+            BlueTextBox.IsEnabled = enabled && !isAudioClip;
+            WhiteTextBox.IsEnabled = enabled && !isAudioClip;
+            IntensitySlider.IsEnabled = enabled && !isAudioClip;
+            SpeedSlider.IsEnabled = enabled && !isAudioClip;
+            ColorPickerControl.IsEnabled = enabled && !isAudioClip;
+            ShapeEditModeComboBox.IsEnabled = enabled && !isAudioClip;
+            MovementEffectComboBox.IsEnabled = enabled && !isAudioClip;
+            ResetMovementButton.IsEnabled = enabled && !isAudioClip;
+            ReplayMotionButton.IsEnabled = enabled && !isAudioClip;
+            RedoMotionButton.IsEnabled = enabled && !isAudioClip;
+            ConfirmMotionButton.IsEnabled = enabled && !isAudioClip;
+
             ClipNameTextBox.Text = clip.Name;
             ClipStartTextBox.Text = clip.StartTime.ToString("0.###", CultureInfo.InvariantCulture);
             ClipDurationTextBox.Text = clip.Duration.ToString("0.###", CultureInfo.InvariantCulture);
@@ -595,6 +776,36 @@ namespace Liekinheitin.CreativeTool.Views
             TimeDisplayText.Text = $"{FormatTime(_playbackController.CurrentTime)} / {FormatTime(_playbackController.Duration)}";
             PlaybackStatusItem.Content = GetStatusText(_playbackController.Status);
             _isUpdatingPlaybackUi = false;
+        }
+
+        private void UpdateAudioUi()
+        {
+            _isUpdatingAudioUi = true;
+
+            AudioVolumeSlider.Value = Math.Clamp(_project.AudioVolume, 0, 1);
+            AudioVolumeTextBlock.Text = $"{Math.Round(_project.AudioVolume * 100):0}%";
+            AudioFileTextBlock.Text = string.IsNullOrWhiteSpace(_project.AudioFilePath)
+                ? "Aucun fichier selectionne"
+                : Path.GetFileName(_project.AudioFilePath);
+            ConfirmAudioButton.IsEnabled = !string.IsNullOrWhiteSpace(_project.AudioFilePath);
+
+            _isUpdatingAudioUi = false;
+        }
+
+        private void SyncAudioPlayback()
+        {
+            switch (_playbackController.Status)
+            {
+                case PlaybackStatus.Playing:
+                    _audioPlaybackService.Play(_playbackController.CurrentTime);
+                    break;
+                case PlaybackStatus.Paused:
+                    _audioPlaybackService.Pause();
+                    break;
+                default:
+                    _audioPlaybackService.Stop();
+                    break;
+            }
         }
 
         private void SetProjectDuration(double duration, bool markDirty)

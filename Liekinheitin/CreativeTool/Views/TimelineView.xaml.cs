@@ -167,18 +167,19 @@ namespace Liekinheitin.CreativeTool.Views
             var x = TimeToX(clip.StartTime);
             var width = Math.Max(MinClipWidth, clip.Duration * PixelsPerSecond);
             var isSelected = ReferenceEquals(clip, _selectedClip);
+            var clipType = clip.IsAudio ? "Audio" : clip.EffectType.ToString();
             var label = $"{clip.Name}  {clip.StartTime:0.#}-{clip.EndTime:0.#}s";
 
             var border = new Border
             {
                 Width = width,
                 Height = TrackHeight - 10,
-                Background = new SolidColorBrush(GetClipColor(clip.EffectType)),
+                Background = new SolidColorBrush(GetClipColor(clip)),
                 BorderBrush = isSelected ? Brushes.White : new SolidColorBrush(Color.FromRgb(90, 90, 90)),
                 BorderThickness = isSelected ? new Thickness(2) : new Thickness(1),
                 CornerRadius = new CornerRadius(4),
                 Tag = clip,
-                ToolTip = $"{label} - {clip.EffectType}"
+                ToolTip = $"{label} - {clipType}"
             };
             border.MouseLeftButtonDown += OnClipMouseLeftButtonDown;
             border.MouseMove += OnClipMouseMove;
@@ -358,12 +359,20 @@ namespace Liekinheitin.CreativeTool.Views
             });
         }
 
-        private static Color GetClipColor(EffectType effectType) => effectType switch
+        private static Color GetClipColor(TimelineClip clip)
         {
-            EffectType.Fade => Color.FromRgb(120, 82, 170),
-            EffectType.Wave => Color.FromRgb(38, 124, 170),
-            _ => Color.FromRgb(180, 72, 72)
-        };
+            if (clip.IsAudio)
+            {
+                return Color.FromRgb(54, 130, 105);
+            }
+
+            return clip.EffectType switch
+            {
+                EffectType.Fade => Color.FromRgb(120, 82, 170),
+                EffectType.Wave => Color.FromRgb(38, 124, 170),
+                _ => Color.FromRgb(180, 72, 72)
+            };
+        }
 
         private enum ResizeEdge
         {

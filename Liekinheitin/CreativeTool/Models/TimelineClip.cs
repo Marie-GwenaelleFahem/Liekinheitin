@@ -12,6 +12,8 @@ namespace Liekinheitin.CreativeTool.Models
 
         public EffectType EffectType { get; set; } = EffectType.SolidColor;
 
+        public bool IsAudio { get; set; }
+
         public TargetSelection Target { get; set; } = TargetSelection.FullWall();
 
         public RgbwColor Color { get; set; } = RgbwColor.White;

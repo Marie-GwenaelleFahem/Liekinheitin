@@ -289,6 +289,51 @@
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
+
+                    <TabItem Header="Musique">
+                        <StackPanel Margin="0,12,0,0">
+                            <TextBlock Margin="0,0,0,16"
+                                       Foreground="#F4F4F4"
+                                       FontSize="16"
+                                       FontWeight="SemiBold"
+                                       Text="Musique" />
+
+                            <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Fichier MP3" />
+                            <TextBlock x:Name="AudioFileTextBlock"
+                                       Margin="0,4,0,12"
+                                       Foreground="#DADADA"
+                                       Text="Aucun fichier selectionne"
+                                       TextTrimming="CharacterEllipsis" />
+
+                            <Button x:Name="SelectAudioButton"
+                                    Height="34"
+                                    Margin="0,0,0,8"
+                                    Content="Ajouter un MP3" />
+                            <Button x:Name="ConfirmAudioButton"
+                                    Height="34"
+                                    Margin="0,0,0,20"
+                                    Content="Confirmer dans la timeline" />
+
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Volume" />
+                                <TextBlock x:Name="AudioVolumeTextBlock"
+                                           Grid.Column="1"
+                                           Foreground="#DADADA"
+                                           FontFamily="Consolas"
+                                           Text="100%" />
+                            </Grid>
+                            <Slider x:Name="AudioVolumeSlider"
+                                    Minimum="0"
+                                    Maximum="1"
+                                    Value="1"
+                                    TickFrequency="0.05"
+                                    IsSnapToTickEnabled="False" />
+                        </StackPanel>
+                    </TabItem>
                 </TabControl>
             </Border>
 

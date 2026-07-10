@@ -12,6 +12,10 @@ namespace Liekinheitin.CreativeTool.Models
 
         public int WallHeight { get; set; } = 128;
 
+        public string? AudioFilePath { get; set; }
+
+        public double AudioVolume { get; set; } = 1.0;
+
         public List<Track> Tracks { get; set; } = new();
     }
 }
