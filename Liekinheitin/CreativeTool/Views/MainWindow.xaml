@@ -121,67 +121,131 @@
                     BorderThickness="1,0,0,0"
                     Background="#252525"
                     Padding="16">
-                <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel>
-                        <TextBlock Margin="0,0,0,16"
-                                   Foreground="#F4F4F4"
-                                   FontSize="16"
-                                   FontWeight="SemiBold"
-                                   Text="Proprietes du clip" />
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Nom" />
-                        <TextBox x:Name="ClipNameTextBox" Margin="0,4,0,12" />
-
-                        <Grid Margin="0,0,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="12" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
+                <TabControl Background="#252525"
+                            BorderBrush="#3A3A3A"
+                            Foreground="#F4F4F4">
+                    <TabItem Header="Clip">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      Padding="0,12,0,0">
                             <StackPanel>
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Debut" />
-                                <TextBox x:Name="ClipStartTextBox" Margin="0,4,0,0" Text="0" />
+                                <TextBlock Margin="0,0,0,16"
+                                           Foreground="#F4F4F4"
+                                           FontSize="16"
+                                           FontWeight="SemiBold"
+                                           Text="Proprietes du clip" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Nom" />
+                                <TextBox x:Name="ClipNameTextBox" Margin="0,4,0,12" />
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="12" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Debut" />
+                                        <TextBox x:Name="ClipStartTextBox" Margin="0,4,0,0" Text="0" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Duree" />
+                                        <TextBox x:Name="ClipDurationTextBox" Margin="0,4,0,0" Text="1" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Type d'effet" />
+                                <ComboBox x:Name="EffectTypeComboBox" Margin="0,4,0,12" SelectedIndex="0">
+                                    <ComboBoxItem Content="Couleur fixe" Tag="SolidColor" />
+                                    <ComboBoxItem Content="Fade" Tag="Fade" />
+                                    <ComboBoxItem Content="Wave" Tag="Wave" />
+                                </ComboBox>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Cible" />
+                                <ComboBox x:Name="TargetTypeComboBox" Margin="0,4,0,12" SelectedIndex="0">
+                                    <ComboBoxItem Content="Mur complet" Tag="FullWall" />
+                                    <ComboBoxItem Content="Selection" Tag="Selection" />
+                                    <ComboBoxItem Content="Piste" Tag="Track" />
+                                </ComboBox>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="RGBW" />
+                                <Grid Margin="0,4,0,12">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox x:Name="RedTextBox" Text="255" />
+                                    <TextBox x:Name="GreenTextBox" Grid.Column="2" Text="255" />
+                                    <TextBox x:Name="BlueTextBox" Grid.Column="4" Text="255" />
+                                    <TextBox x:Name="WhiteTextBox" Grid.Column="6" Text="0" />
+                                </Grid>
+
+                                <local:ColorPickerView x:Name="ColorPickerControl" Margin="0,0,0,16" Height="140" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Intensite" />
+                                <Slider x:Name="IntensitySlider" Margin="0,4,0,12" Minimum="0" Maximum="1" Value="1" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Vitesse" />
+                                <Slider x:Name="SpeedSlider" Margin="0,4,0,20" Minimum="0" Maximum="4" Value="1" />
+
+                                <Button x:Name="ApplyPropertiesButton" Height="34" Content="Appliquer les proprietes" />
                             </StackPanel>
-                            <StackPanel Grid.Column="2">
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Duree" />
-                                <TextBox x:Name="ClipDurationTextBox" Margin="0,4,0,0" Text="1" />
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem x:Name="ShapesTab" Header="Formes">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto"
+                                      Padding="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock x:Name="ShapesClipTextBlock"
+                                           Margin="0,0,0,12"
+                                           Foreground="#DADADA"
+                                           Text="Aucun clip selectionne" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Deplacement souris" />
+                                <ComboBox x:Name="ShapeEditModeComboBox"
+                                          Margin="0,4,0,12"
+                                          SelectedIndex="0">
+                                    <ComboBoxItem Content="Position de la forme" Tag="Position" />
+                                    <ComboBoxItem Content="Arrivee du mouvement" Tag="Movement" />
+                                </ComboBox>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Effet de mouvement" />
+                                <ComboBox x:Name="MovementEffectComboBox"
+                                          Margin="0,4,0,8"
+                                          SelectedIndex="0">
+                                    <ComboBoxItem Content="Aucun" Tag="None" />
+                                    <ComboBoxItem Content="Lent" Tag="Slow" />
+                                    <ComboBoxItem Content="Rapide" Tag="Fast" />
+                                    <ComboBoxItem Content="Fade" Tag="Fade" />
+                                </ComboBox>
+
+                                <TextBlock x:Name="MovementOffsetTextBlock"
+                                           Margin="0,0,0,12"
+                                           Foreground="#AFAFAF"
+                                           FontFamily="Consolas"
+                                           Text="dx 0 / dy 0" />
+
+                                <ItemsControl x:Name="ShapesItemsControl">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Margin="0,0,0,8"
+                                                    Height="32"
+                                                    HorizontalContentAlignment="Left"
+                                                    Content="{Binding DisplayName}"
+                                                    Tag="{Binding}"
+                                                    Click="OnShapeButtonClick" />
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
                             </StackPanel>
-                        </Grid>
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Type d'effet" />
-                        <ComboBox x:Name="EffectTypeComboBox" Margin="0,4,0,12" SelectedIndex="0"><ComboBoxItem Content="Couleur fixe" Tag="SolidColor" /><ComboBoxItem Content="Fade" Tag="Fade" /><ComboBoxItem Content="Wave" Tag="Wave" /></ComboBox>
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Cible" />
-                        <ComboBox x:Name="TargetTypeComboBox" Margin="0,4,0,12" SelectedIndex="0"><ComboBoxItem Content="Mur complet" Tag="FullWall" /><ComboBoxItem Content="Selection" Tag="Selection" /><ComboBoxItem Content="Piste" Tag="Track" /></ComboBox>
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="RGBW" />
-                        <Grid Margin="0,4,0,12">
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="8" />
-                                <ColumnDefinition Width="*" />
-                            </Grid.ColumnDefinitions>
-                            <TextBox x:Name="RedTextBox" Text="255" />
-                            <TextBox x:Name="GreenTextBox" Grid.Column="2" Text="255" />
-                            <TextBox x:Name="BlueTextBox" Grid.Column="4" Text="255" />
-                            <TextBox x:Name="WhiteTextBox" Grid.Column="6" Text="0" />
-                        </Grid>
-
-                        <local:ColorPickerView x:Name="ColorPickerControl" Margin="0,0,0,16" Height="140" />
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Intensite" />
-                        <Slider x:Name="IntensitySlider" Margin="0,4,0,12" Minimum="0" Maximum="1" Value="1" />
-
-                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Vitesse" />
-                        <Slider x:Name="SpeedSlider" Margin="0,4,0,20" Minimum="0" Maximum="4" Value="1" />
-
-                        <Button x:Name="ApplyPropertiesButton" Height="34" Content="Appliquer les proprietes" />
-                    </StackPanel>
-                </ScrollViewer>
+                        </ScrollViewer>
+                    </TabItem>
+                </TabControl>
             </Border>
 
             <Border Grid.Row="2"
@@ -196,10 +260,21 @@
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Margin="12,10"
-                               Foreground="#DADADA"
-                               FontWeight="SemiBold"
-                               Text="Timeline" />
+                    <Grid Margin="12,8,12,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock VerticalAlignment="Center"
+                                   Foreground="#DADADA"
+                                   FontWeight="SemiBold"
+                                   Text="Timeline" />
+                        <Button x:Name="AddShapeLayerButton"
+                                Grid.Column="1"
+                                MinWidth="104"
+                                Height="26"
+                                Content="+ Forme" />
+                    </Grid>
 
                     <local:TimelineView x:Name="TimelineControl" Grid.Row="1" Margin="12" />
                 </Grid>
@@ -207,11 +282,3 @@
         </Grid>
     </DockPanel>
 </Window>
-
-
-
-
-
-
-
-

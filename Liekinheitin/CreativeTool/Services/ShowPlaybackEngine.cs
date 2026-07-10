@@ -17,11 +17,7 @@ namespace Liekinheitin.CreativeTool.Services
             {
                 foreach (var clip in track.Clips.Where(clip => IsClipActive(clip, currentTime)))
                 {
-                    var localTime = currentTime - clip.StartTime;
-                    foreach (var entityId in ResolveTargets(clip, totalPixels))
-                    {
-                        colors[entityId] = ComputeClipColor(clip, localTime, entityId, project.WallWidth);
-                    }
+                    ApplyClip(colors, clip, currentTime, totalPixels, project.WallWidth, project.WallHeight);
                 }
             }
 
@@ -40,12 +36,36 @@ namespace Liekinheitin.CreativeTool.Services
             return state;
         }
 
+        private static void ApplyClip(
+            IDictionary<int, RgbwColor> colors,
+            TimelineClip clip,
+            double currentTime,
+            int totalPixels,
+            int wallWidth,
+            int wallHeight)
+        {
+            var localTime = currentTime - clip.StartTime;
+            var movementProgress = MovementProgress(clip, localTime);
+            var movementIntensity = MovementIntensity(clip, localTime);
+
+            foreach (var entityId in ResolveTargets(clip, totalPixels))
+            {
+                var targetEntityId = ApplyMovement(entityId, clip, movementProgress, wallWidth, wallHeight);
+                if (targetEntityId is null)
+                {
+                    continue;
+                }
+
+                colors[targetEntityId.Value] = Scale(ComputeClipColor(clip, localTime, targetEntityId.Value, wallWidth), movementIntensity);
+            }
+        }
+
         private static bool IsClipActive(TimelineClip clip, double currentTime)
             => currentTime >= clip.StartTime && currentTime <= clip.EndTime;
 
         private static IEnumerable<int> ResolveTargets(TimelineClip clip, int totalPixels)
         {
-            if (clip.Target.Type == TargetType.Selection && clip.Target.EntityIds.Count > 0)
+            if (clip.Target.Type == TargetType.Selection)
             {
                 return clip.Target.EntityIds;
             }
@@ -64,6 +84,52 @@ namespace Liekinheitin.CreativeTool.Services
             };
 
             return color;
+        }
+
+        private static int? ApplyMovement(int entityId, TimelineClip clip, double progress, int wallWidth, int wallHeight)
+        {
+            if (clip.Target.Type != TargetType.Selection || clip.MovementEffect == MovementEffectType.None)
+            {
+                return entityId;
+            }
+
+            var x = entityId % wallWidth;
+            var y = entityId / wallWidth;
+            var movedX = x + (int)Math.Round(clip.MovementOffsetX * progress);
+            var movedY = y + (int)Math.Round(clip.MovementOffsetY * progress);
+
+            if (movedX < 0 || movedX >= wallWidth || movedY < 0 || movedY >= wallHeight)
+            {
+                return null;
+            }
+
+            return (movedY * wallWidth) + movedX;
+        }
+
+        private static double MovementProgress(TimelineClip clip, double localTime)
+        {
+            if (clip.MovementEffect == MovementEffectType.None || clip.Duration <= 0)
+            {
+                return 0;
+            }
+
+            var progress = Math.Clamp(localTime / clip.Duration, 0, 1);
+            return clip.MovementEffect switch
+            {
+                MovementEffectType.Slow => progress * progress,
+                MovementEffectType.Fast => 1 - Math.Pow(1 - progress, 2),
+                _ => progress
+            };
+        }
+
+        private static double MovementIntensity(TimelineClip clip, double localTime)
+        {
+            if (clip.MovementEffect != MovementEffectType.Fade)
+            {
+                return 1;
+            }
+
+            return FadeLevel(localTime, clip.Duration);
         }
 
         private static double FadeLevel(double localTime, double duration)

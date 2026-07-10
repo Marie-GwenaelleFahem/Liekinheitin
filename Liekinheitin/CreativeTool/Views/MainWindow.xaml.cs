@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -7,6 +9,7 @@ using System.Windows.Threading;
 using Liekinheitin.Application.Interfaces;
 using Liekinheitin.CreativeTool.Models;
 using Liekinheitin.CreativeTool.Services;
+using Liekinheitin.CreativeTool.Shapes;
 using Liekinheitin.Infrastructure.Network;
 using Microsoft.Win32;
 
@@ -29,6 +32,7 @@ namespace Liekinheitin.CreativeTool.Views
 
         private ShowProject _project;
         private TimelineClip? _selectedClip;
+        private IReadOnlyList<IShape> _availableShapes = Array.Empty<IShape>();
         private string? _projectPath;
         private bool _isDirty;
         private bool _isUpdatingPlaybackUi;
@@ -53,6 +57,9 @@ namespace Liekinheitin.CreativeTool.Views
             TimeSlider.ValueChanged += OnTimeSliderValueChanged;
             TimelineControl.ClipSelected += OnTimelineClipSelected;
             ApplyPropertiesButton.Click += OnApplyPropertiesClick;
+            AddShapeLayerButton.Click += OnAddShapeLayerClick;
+            LedPreview.PixelDragDelta += OnPreviewPixelDragDelta;
+            MovementEffectComboBox.SelectionChanged += OnMovementEffectSelectionChanged;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
             _playbackController.StateChanged += (_, _) => UpdatePlaybackUi();
 
@@ -140,9 +147,113 @@ namespace Liekinheitin.CreativeTool.Views
                 ReadByte(WhiteTextBox, _selectedClip.Color.W));
             _selectedClip.Intensity = Math.Clamp(IntensitySlider.Value, 0, 1);
             _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0, 4);
+            _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
 
             MarkDirty();
             TimelineControl.Redraw();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnShapeButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: IShape shape } || _selectedClip is null)
+            {
+                return;
+            }
+
+            var entityIds = shape.GetEntityIds()
+                .Where(id => id >= 0 && id < _project.WallWidth * _project.WallHeight)
+                .Distinct()
+                .ToList();
+
+            _selectedClip.Target.Type = TargetType.Selection;
+            _selectedClip.Target.EntityIds = entityIds;
+            _selectedClip.MovementOffsetX = 0;
+            _selectedClip.MovementOffsetY = 0;
+            _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
+            SelectComboByTag(TargetTypeComboBox, TargetType.Selection.ToString());
+            UpdateMovementOffsetText(_selectedClip);
+
+            if (_playbackController.CurrentTime < _selectedClip.StartTime || _playbackController.CurrentTime > _selectedClip.EndTime)
+            {
+                _playbackController.Seek(_selectedClip.StartTime);
+                TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            }
+
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnAddShapeLayerClick(object sender, RoutedEventArgs e)
+        {
+            var shapeLayerCount = _project.Tracks.Count(track => track.Name.StartsWith("Forme", StringComparison.OrdinalIgnoreCase));
+            var trackName = shapeLayerCount == 0 ? "Forme" : $"Forme {shapeLayerCount + 1}";
+            var clip = new TimelineClip
+            {
+                Name = trackName,
+                StartTime = Math.Min(_playbackController.CurrentTime, Math.Max(0, _project.Duration - 1)),
+                Duration = 1,
+                EffectType = EffectType.SolidColor,
+                Target = new TargetSelection { Type = TargetType.Selection },
+                MovementEffect = ReadComboTag(MovementEffectComboBox, MovementEffectType.None),
+                Color = RgbwColor.White,
+                Intensity = 1
+            };
+            var track = new Track
+            {
+                Name = trackName,
+                Clips = { clip }
+            };
+
+            _project.Tracks.Add(track);
+            _selectedClip = clip;
+
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            UpdatePropertyPanel(clip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnPreviewPixelDragDelta(object? sender, PixelDragDeltaEventArgs e)
+        {
+            if (_selectedClip?.Target.Type != TargetType.Selection || _selectedClip.Target.EntityIds.Count == 0)
+            {
+                return;
+            }
+
+            if (IsEditingMovementTarget())
+            {
+                MoveMovementTarget(_selectedClip, e.DeltaX, e.DeltaY);
+                MarkDirty();
+                SeekToMovementPreviewTime(_selectedClip);
+                UpdateMovementOffsetText(_selectedClip);
+                RenderPreview(_playbackController.CurrentTime);
+                return;
+            }
+
+            var movedEntityIds = MoveSelection(_selectedClip.Target.EntityIds, e.DeltaX, e.DeltaY);
+            if (movedEntityIds is null)
+            {
+                return;
+            }
+
+            _selectedClip.Target.EntityIds = movedEntityIds;
+            ClampMovementTarget(_selectedClip);
+            UpdateMovementOffsetText(_selectedClip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnMovementEffectSelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (_isUpdatingPropertyUi || _selectedClip is null)
+            {
+                return;
+            }
+
+            _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
+            MarkDirty();
             RenderPreview(_playbackController.CurrentTime);
         }
 
@@ -244,6 +355,8 @@ namespace Liekinheitin.CreativeTool.Views
             _isUpdatingPropertyUi = true;
             var enabled = clip is not null;
 
+            UpdateShapesTab(clip);
+
             ClipNameTextBox.IsEnabled = enabled;
             ClipStartTextBox.IsEnabled = enabled;
             ClipDurationTextBox.IsEnabled = enabled;
@@ -257,11 +370,14 @@ namespace Liekinheitin.CreativeTool.Views
             SpeedSlider.IsEnabled = enabled;
             ApplyPropertiesButton.IsEnabled = enabled;
             ColorPickerControl.IsEnabled = enabled;
+            ShapeEditModeComboBox.IsEnabled = enabled;
+            MovementEffectComboBox.IsEnabled = enabled;
 
             if (clip is null)
             {
                 ClipNameTextBox.Text = string.Empty;
                 ColorPickerControl.SetColor(RgbwColor.White);
+                MovementOffsetTextBlock.Text = "dx 0 / dy 0";
                 _isUpdatingPropertyUi = false;
                 return;
             }
@@ -278,7 +394,20 @@ namespace Liekinheitin.CreativeTool.Views
             ColorPickerControl.SetColor(clip.Color);
             IntensitySlider.Value = clip.Intensity;
             SpeedSlider.Value = clip.Speed;
+            SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
+            UpdateMovementOffsetText(clip);
             _isUpdatingPropertyUi = false;
+        }
+
+        private void UpdateShapesTab(TimelineClip? clip)
+        {
+            _availableShapes = ShapeFactory.CreateForClip(clip, _project.WallWidth, _project.WallHeight);
+            ShapesItemsControl.ItemsSource = _availableShapes;
+            ShapesTab.IsEnabled = clip is not null;
+            ShapesClipTextBlock.Text = clip is null
+                ? "Aucun clip selectionne"
+                : $"Formes pour le clip : {clip.Name}";
+            UpdateMovementOffsetText(clip);
         }
 
         private void UpdatePlaybackUi()
@@ -300,24 +429,14 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void RenderPreview(double currentTime)
         {
-            var activeClip = FindActiveClip(currentTime);
-            if (activeClip is null)
+            var state = _playbackEngine.ComputeState(currentTime, _project);
+            if (state.Entities.Count == 0)
             {
                 LedPreview.Clear();
                 return;
             }
 
-            if (activeClip.EffectType == EffectType.Wave)
-            {
-                LedPreview.RenderWave(currentTime * activeClip.Speed);
-                return;
-            }
-
-            var level = activeClip.EffectType == EffectType.Fade
-                ? FadeLevel(currentTime - activeClip.StartTime, activeClip.Duration)
-                : 1;
-            var color = ScaleColor(activeClip.Color.ToColor(), level * activeClip.Intensity);
-            LedPreview.Fill(color);
+            LedPreview.RenderState(state);
         }
 
         private void PublishCurrentState(double currentTime)
@@ -389,17 +508,18 @@ namespace Liekinheitin.CreativeTool.Views
                     },
                     new Track
                     {
-                        Name = "Accent",
+                        Name = "Forme",
                         Clips =
                         {
                             new TimelineClip
                             {
-                                Name = "Fade blanc",
+                                Name = "Forme 1",
                                 StartTime = 20,
                                 Duration = 6,
                                 EffectType = EffectType.Fade,
                                 Color = new RgbwColor(180, 180, 180, 40),
-                                Intensity = 1
+                                Intensity = 1,
+                                Target = new TargetSelection { Type = TargetType.Selection }
                             }
                         }
                     }
@@ -418,6 +538,116 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             return null;
+        }
+
+        private List<int>? MoveSelection(IReadOnlyCollection<int> entityIds, int deltaX, int deltaY)
+        {
+            var points = entityIds
+                .Select(id => new { X = id % _project.WallWidth, Y = id / _project.WallWidth })
+                .Where(point => point.Y >= 0 && point.Y < _project.WallHeight)
+                .ToList();
+
+            if (points.Count == 0)
+            {
+                return null;
+            }
+
+            var minX = points.Min(point => point.X);
+            var maxX = points.Max(point => point.X);
+            var minY = points.Min(point => point.Y);
+            var maxY = points.Max(point => point.Y);
+            var boundedDeltaX = Math.Clamp(deltaX, -minX, _project.WallWidth - 1 - maxX);
+            var boundedDeltaY = Math.Clamp(deltaY, -minY, _project.WallHeight - 1 - maxY);
+
+            if (boundedDeltaX == 0 && boundedDeltaY == 0)
+            {
+                return null;
+            }
+
+            return points
+                .Select(point => ((point.Y + boundedDeltaY) * _project.WallWidth) + point.X + boundedDeltaX)
+                .Distinct()
+                .ToList();
+        }
+
+        private void MoveMovementTarget(TimelineClip clip, int deltaX, int deltaY)
+        {
+            var bounds = GetSelectionBounds(clip.Target.EntityIds);
+            if (bounds is null)
+            {
+                return;
+            }
+
+            var (minX, maxX, minY, maxY) = bounds.Value;
+            clip.MovementOffsetX = Math.Clamp(
+                clip.MovementOffsetX + deltaX,
+                -minX,
+                _project.WallWidth - 1 - maxX);
+            clip.MovementOffsetY = Math.Clamp(
+                clip.MovementOffsetY + deltaY,
+                -minY,
+                _project.WallHeight - 1 - maxY);
+
+            if (clip.MovementEffect == MovementEffectType.None)
+            {
+                clip.MovementEffect = MovementEffectType.Slow;
+                SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
+            }
+        }
+
+        private void ClampMovementTarget(TimelineClip clip)
+        {
+            var bounds = GetSelectionBounds(clip.Target.EntityIds);
+            if (bounds is null)
+            {
+                clip.MovementOffsetX = 0;
+                clip.MovementOffsetY = 0;
+                return;
+            }
+
+            var (minX, maxX, minY, maxY) = bounds.Value;
+            clip.MovementOffsetX = Math.Clamp(clip.MovementOffsetX, -minX, _project.WallWidth - 1 - maxX);
+            clip.MovementOffsetY = Math.Clamp(clip.MovementOffsetY, -minY, _project.WallHeight - 1 - maxY);
+        }
+
+        private void SeekToMovementPreviewTime(TimelineClip clip)
+        {
+            var previewTime = Math.Max(clip.StartTime, clip.EndTime - 0.001);
+            if (Math.Abs(_playbackController.CurrentTime - previewTime) > 0.001)
+            {
+                _playbackController.Seek(previewTime);
+                TimelineControl.SetPlayhead(_playbackController.CurrentTime);
+            }
+        }
+
+        private bool IsEditingMovementTarget()
+            => ShapeEditModeComboBox.SelectedItem is ComboBoxItem { Tag: string tag }
+               && string.Equals(tag, "Movement", StringComparison.Ordinal);
+
+        private void UpdateMovementOffsetText(TimelineClip? clip)
+        {
+            MovementOffsetTextBlock.Text = clip is null
+                ? "dx 0 / dy 0"
+                : $"dx {clip.MovementOffsetX} / dy {clip.MovementOffsetY}";
+        }
+
+        private (int MinX, int MaxX, int MinY, int MaxY)? GetSelectionBounds(IReadOnlyCollection<int> entityIds)
+        {
+            var points = entityIds
+                .Select(id => new { X = id % _project.WallWidth, Y = id / _project.WallWidth })
+                .Where(point => point.Y >= 0 && point.Y < _project.WallHeight)
+                .ToList();
+
+            if (points.Count == 0)
+            {
+                return null;
+            }
+
+            return (
+                points.Min(point => point.X),
+                points.Max(point => point.X),
+                points.Min(point => point.Y),
+                points.Max(point => point.Y));
         }
 
         private static double ReadDouble(TextBox textBox, double fallback)

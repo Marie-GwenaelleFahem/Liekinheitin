@@ -18,6 +18,12 @@ namespace Liekinheitin.CreativeTool.Models
 
         public double Speed { get; set; } = 1.0;
 
+        public MovementEffectType MovementEffect { get; set; } = MovementEffectType.None;
+
+        public int MovementOffsetX { get; set; }
+
+        public int MovementOffsetY { get; set; }
+
         public double EndTime => StartTime + Duration;
     }
 }

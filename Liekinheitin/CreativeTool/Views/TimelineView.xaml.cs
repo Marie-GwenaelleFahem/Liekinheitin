@@ -24,6 +24,7 @@ namespace Liekinheitin.CreativeTool.Views
         private ShowProject? _project;
         private TimelineClip? _selectedClip;
         private double _playheadTime;
+        private Line? _playheadLine;
 
         public TimelineView()
         {
@@ -42,7 +43,7 @@ namespace Liekinheitin.CreativeTool.Views
         public void SetPlayhead(double currentTime)
         {
             _playheadTime = Math.Max(0, currentTime);
-            Redraw();
+            UpdatePlayhead();
         }
 
         public void SelectClip(TimelineClip? clip)
@@ -54,6 +55,7 @@ namespace Liekinheitin.CreativeTool.Views
         public void Redraw()
         {
             TimelineCanvas.Children.Clear();
+            _playheadLine = null;
 
             if (_project is null)
             {
@@ -187,7 +189,29 @@ namespace Liekinheitin.CreativeTool.Views
         private void DrawPlayhead(double height)
         {
             var x = TimeToX(_playheadTime);
-            AddLine(x, 0, x, height, "#FF4D4D", 2);
+            _playheadLine = new Line
+            {
+                X1 = x,
+                Y1 = 0,
+                X2 = x,
+                Y2 = height,
+                Stroke = new SolidColorBrush(Color.FromRgb(255, 77, 77)),
+                StrokeThickness = 2
+            };
+            TimelineCanvas.Children.Add(_playheadLine);
+        }
+
+        private void UpdatePlayhead()
+        {
+            if (_playheadLine is null)
+            {
+                Redraw();
+                return;
+            }
+
+            var x = TimeToX(_playheadTime);
+            _playheadLine.X1 = x;
+            _playheadLine.X2 = x;
         }
 
         private void OnClipMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
