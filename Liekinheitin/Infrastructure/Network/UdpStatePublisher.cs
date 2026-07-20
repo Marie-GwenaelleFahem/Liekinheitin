@@ -1,8 +1,7 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
+using MessagePack;
 using System.Net.Sockets;
-using System.Text;
-using System.Text.Json;
 
 namespace Liekinheitin.Infrastructure.Network;
 
@@ -10,10 +9,12 @@ namespace Liekinheitin.Infrastructure.Network;
 /// Implémentation concrète d'<see cref="IStatePublisher"/>, utilisée côté CreativeTool.
 /// </summary>
 /// <remarks>
-/// <see cref="Publish"/> sérialise l'objet <see cref="State"/> reçu en JSON et l'envoie via
-/// UDP vers l'adresse IP et le port de RoutingHost. <c>MainViewModel</c> détient une
-/// référence à cette classe uniquement à travers le type <see cref="IStatePublisher"/>, et
-/// l'appelle à chaque frame pendant la lecture de la timeline — environ 40 fois par seconde.
+/// <see cref="Publish"/> sérialise l'objet <see cref="State"/> reçu en MessagePack (format
+/// binaire compact, via <see cref="StateMessagePackMapper"/>) et l'envoie via UDP vers
+/// l'adresse IP et le port de RoutingHost. <c>MainViewModel</c> détient une référence à cette
+/// classe uniquement à travers le type <see cref="IStatePublisher"/>, et l'appelle à chaque
+/// frame pendant la lecture de la timeline — environ 40 fois par seconde ; le format binaire
+/// évite le surcoût du texte JSON à cette fréquence.
 /// </remarks>
 public class UdpStatePublisher : IStatePublisher, IDisposable
 {
@@ -32,7 +33,7 @@ public class UdpStatePublisher : IStatePublisher, IDisposable
     /// <inheritdoc />
     public void Publish(State state)
     {
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(state);
+        byte[] payload = MessagePackSerializer.Serialize(StateMessagePackMapper.ToDto(state));
         _udpClient.Send(payload, payload.Length, _targetIp, _targetPort);
     }
 

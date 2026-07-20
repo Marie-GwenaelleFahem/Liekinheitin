@@ -1,7 +1,7 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
+using MessagePack;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Liekinheitin.Infrastructure.Network;
 
@@ -32,7 +32,7 @@ public class UdpEntityListPublisher : IEntityListPublisher, IDisposable
     /// <inheritdoc />
     public void PublishEntityList(State state)
     {
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(state);
+        byte[] payload = MessagePackSerializer.Serialize(StateMessagePackMapper.ToDto(state));
         _udpClient.Send(payload, payload.Length, _targetIp, _targetPort);
     }
 

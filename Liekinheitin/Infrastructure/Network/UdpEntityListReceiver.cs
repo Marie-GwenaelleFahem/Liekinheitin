@@ -1,7 +1,7 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
+using MessagePack;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Liekinheitin.Infrastructure.Network;
 
@@ -44,17 +44,14 @@ public class UdpEntityListReceiver : IEntityListSource, IDisposable
             try
             {
                 var result = await _udpClient.ReceiveAsync(token);
-                var state = JsonSerializer.Deserialize<State>(result.Buffer);
-                if (state is not null)
-                {
-                    EntityListReceived?.Invoke(state);
-                }
+                var dto = MessagePackSerializer.Deserialize<StateDto>(result.Buffer);
+                EntityListReceived?.Invoke(StateMessagePackMapper.ToDomain(dto));
             }
             catch (OperationCanceledException)
             {
                 // Arrêt normal demandé via StopListening().
             }
-            catch (JsonException)
+            catch (MessagePackSerializationException)
             {
                 // Message reçu mal formé : ignoré plutôt que de faire planter la boucle d'écoute.
             }

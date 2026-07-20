@@ -1,7 +1,7 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
+using MessagePack;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Liekinheitin.Infrastructure.Network;
 
@@ -10,10 +10,11 @@ namespace Liekinheitin.Infrastructure.Network;
 /// </summary>
 /// <remarks>
 /// <see cref="StartListening"/> ouvre un socket UDP et boucle en tâche de fond, sur un
-/// thread séparé de l'interface graphique ; à chaque message reçu, il est désérialisé en
-/// <see cref="State"/> et l'événement <see cref="StateReceived"/> est déclenché, auquel
-/// <c>RoutingEngine</c> est abonné. Cette séparation de thread garantit que la réception
-/// réseau ne ralentit jamais l'affichage de RoutingHost.
+/// thread séparé de l'interface graphique ; à chaque message reçu, il est désérialisé (format
+/// MessagePack, via <see cref="StateMessagePackMapper"/>) en <see cref="State"/> et l'événement
+/// <see cref="StateReceived"/> est déclenché, auquel <c>RoutingEngine</c> est abonné. Cette
+/// séparation de thread garantit que la réception réseau ne ralentit jamais l'affichage de
+/// RoutingHost.
 /// </remarks>
 public class UdpStateReceiver : IStateSource, IDisposable
 {
@@ -46,17 +47,14 @@ public class UdpStateReceiver : IStateSource, IDisposable
             try
             {
                 var result = await _udpClient.ReceiveAsync(token);
-                var state = JsonSerializer.Deserialize<State>(result.Buffer);
-                if (state is not null)
-                {
-                    StateReceived?.Invoke(state);
-                }
+                var dto = MessagePackSerializer.Deserialize<StateDto>(result.Buffer);
+                StateReceived?.Invoke(StateMessagePackMapper.ToDomain(dto));
             }
             catch (OperationCanceledException)
             {
                 // Arrêt normal demandé via StopListening().
             }
-            catch (JsonException)
+            catch (MessagePackSerializationException)
             {
                 // Message reçu mal formé : ignoré plutôt que de faire planter la boucle d'écoute.
             }
