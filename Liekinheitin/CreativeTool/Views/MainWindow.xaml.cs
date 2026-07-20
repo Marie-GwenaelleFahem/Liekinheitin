@@ -28,6 +28,7 @@ namespace Liekinheitin.CreativeTool.Views
 
         private readonly PlaybackController _playbackController = new();
         private readonly ProjectFileService _projectFileService = new();
+        private readonly SavedProjectsService _savedProjectsService;
         private readonly ShowPlaybackEngine _playbackEngine = new();
         private readonly AudioPlaybackService _audioPlaybackService = new();
         private readonly IStatePublisher _statePublisher;
@@ -50,6 +51,8 @@ namespace Liekinheitin.CreativeTool.Views
         public MainWindow()
         {
             InitializeComponent();
+
+            _savedProjectsService = new SavedProjectsService(_projectFileService);
 
             _statePublisher = new UdpStatePublisher(RoutingHostIp, RoutingHostStatePort);
             _project = CreateDefaultProject();
@@ -560,6 +563,37 @@ namespace Liekinheitin.CreativeTool.Views
         }
 
         private void OnSaveProjectAsClick(object sender, RoutedEventArgs e) => SaveProjectAs();
+
+        private void OnSaveToLibraryClick(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                _projectPath = _savedProjectsService.Save(_project);
+                _isDirty = false;
+                UpdateProjectStatus();
+                MessageBox.Show(this, "Animation enregistrée dans Mes sauvegardes.", "Sauvegarde", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Sauvegarde", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void OnSavedProjectsClick(object sender, RoutedEventArgs e)
+        {
+            var window = new SavedProjectsWindow(_savedProjectsService) { Owner = this };
+            if (window.ShowDialog() != true || window.SelectedProjectPath is not { } path) return;
+
+            try
+            {
+                _playbackController.Stop();
+                LoadProjectIntoUi(_projectFileService.Load(path), path, markDirty: false);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show(this, ex.Message, "Reprise de l'animation", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
 
         private void OnExitClick(object sender, RoutedEventArgs e) => Close();
 

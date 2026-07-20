@@ -1,0 +1,33 @@
+<Window x:Class="Liekinheitin.CreativeTool.Views.SavedProjectsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Mes sauvegardes" Height="430" Width="650" MinHeight="320" MinWidth="520"
+        WindowStartupLocation="CenterOwner" Background="#1F1F1F" Foreground="#F4F4F4">
+    <Grid Margin="18">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,12">
+            <TextBlock FontSize="20" FontWeight="SemiBold" Text="Animations sauvegardées" />
+            <TextBlock Margin="0,5,0,0" Foreground="#BDBDBD" Text="Double-clique une animation pour la reprendre." />
+        </StackPanel>
+        <ListView x:Name="ProjectsList" Grid.Row="1" Background="#292929" BorderBrush="#444">
+            <ListView.View>
+                <GridView>
+                    <GridViewColumn Header="Nom" Width="360" DisplayMemberBinding="{Binding Name}" />
+                    <GridViewColumn Header="Dernière modification" Width="190" DisplayMemberBinding="{Binding ModifiedText}" />
+                </GridView>
+            </ListView.View>
+        </ListView>
+        <Grid Grid.Row="2" Margin="0,14,0,0">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+            <Button Width="130" Height="32" HorizontalAlignment="Left" Content="Ouvrir le dossier" Click="OnOpenFolderClick" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Width="100" Height="32" Margin="0,0,8,0" Content="Supprimer" Click="OnDeleteClick" />
+                <Button Width="100" Height="32" IsDefault="True" Content="Reprendre" Click="OnResumeClick" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

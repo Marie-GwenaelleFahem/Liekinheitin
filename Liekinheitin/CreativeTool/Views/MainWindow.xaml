@@ -26,6 +26,8 @@
                 <Separator />
                 <MenuItem Header="_Sauvegarder" Click="OnSaveProjectClick" />
                 <MenuItem Header="Sauvegarder _sous..." Click="OnSaveProjectAsClick" />
+                <MenuItem Header="Enregistrer dans _Mes sauvegardes" Click="OnSaveToLibraryClick" />
+                <MenuItem Header="_Mes sauvegardes..." Click="OnSavedProjectsClick" />
                 <Separator />
                 <MenuItem Header="_Quitter" Click="OnExitClick" />
             </MenuItem>

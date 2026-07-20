@@ -26,8 +26,15 @@ namespace Liekinheitin.CreativeTool.Services
         public ShowProject Load(string path)
         {
             var json = File.ReadAllText(path);
-            return JsonSerializer.Deserialize<ShowProject>(json, JsonOptions)
+            var project = JsonSerializer.Deserialize<ShowProject>(json, JsonOptions)
                 ?? throw new InvalidDataException("Le fichier projet est vide ou invalide.");
+
+            if (!string.IsNullOrWhiteSpace(project.AudioFilePath) && !Path.IsPathRooted(project.AudioFilePath))
+            {
+                project.AudioFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, project.AudioFilePath));
+            }
+
+            return project;
         }
     }
 }

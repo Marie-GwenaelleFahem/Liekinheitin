@@ -14,5 +14,9 @@
     <ProjectReference Include="..\Infrastructure\Liekinheitin.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Animations\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
 
