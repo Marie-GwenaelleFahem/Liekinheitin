@@ -10,15 +10,18 @@ namespace Liekinheitin.Infrastructure.Network;
 /// </summary>
 /// <remarks>
 /// <see cref="StartListening"/> ouvre un socket UDP et boucle en tâche de fond, sur un
-/// thread séparé de l'interface graphique ; à chaque message reçu, il est désérialisé (format
-/// MessagePack, via <see cref="StateMessagePackMapper"/>) en <see cref="State"/> et l'événement
-/// <see cref="StateReceived"/> est déclenché, auquel <c>RoutingEngine</c> est abonné. Cette
-/// séparation de thread garantit que la réception réseau ne ralentit jamais l'affichage de
-/// RoutingHost.
+/// thread séparé de l'interface graphique ; chaque paquet reçu est d'abord recollé par
+/// <see cref="UdpChunkReassembler"/> (le <c>State</c> émetteur ayant pu être découpé en
+/// plusieurs morceaux par <see cref="UdpChunkSender"/>), puis, une fois complet, désérialisé
+/// (format MessagePack, via <see cref="StateMessagePackMapper"/>) en <see cref="State"/> ; à ce
+/// moment seulement, l'événement <see cref="StateReceived"/> est déclenché, auquel
+/// <c>RoutingEngine</c> est abonné. Cette séparation de thread garantit que la réception réseau
+/// ne ralentit jamais l'affichage de RoutingHost.
 /// </remarks>
 public class UdpStateReceiver : IStateSource, IDisposable
 {
     private readonly UdpClient _udpClient;
+    private readonly UdpChunkReassembler _reassembler = new();
     private CancellationTokenSource? _cts;
 
     /// <inheritdoc />
@@ -47,7 +50,11 @@ public class UdpStateReceiver : IStateSource, IDisposable
             try
             {
                 var result = await _udpClient.ReceiveAsync(token);
-                var dto = MessagePackSerializer.Deserialize<StateDto>(result.Buffer);
+                byte[]? complete = _reassembler.Receive(result.Buffer);
+                if (complete is null)
+                    continue; // il manque encore des morceaux de ce State
+
+                var dto = MessagePackSerializer.Deserialize<StateDto>(complete);
                 StateReceived?.Invoke(StateMessagePackMapper.ToDomain(dto));
             }
             catch (OperationCanceledException)

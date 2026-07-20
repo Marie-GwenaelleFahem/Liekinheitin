@@ -16,6 +16,7 @@ namespace Liekinheitin.Infrastructure.Network;
 public class UdpEntityListReceiver : IEntityListSource, IDisposable
 {
     private readonly UdpClient _udpClient;
+    private readonly UdpChunkReassembler _reassembler = new();
     private CancellationTokenSource? _cts;
 
     /// <inheritdoc />
@@ -44,7 +45,11 @@ public class UdpEntityListReceiver : IEntityListSource, IDisposable
             try
             {
                 var result = await _udpClient.ReceiveAsync(token);
-                var dto = MessagePackSerializer.Deserialize<StateDto>(result.Buffer);
+                byte[]? complete = _reassembler.Receive(result.Buffer);
+                if (complete is null)
+                    continue; // il manque encore des morceaux de ce State
+
+                var dto = MessagePackSerializer.Deserialize<StateDto>(complete);
                 EntityListReceived?.Invoke(StateMessagePackMapper.ToDomain(dto));
             }
             catch (OperationCanceledException)
