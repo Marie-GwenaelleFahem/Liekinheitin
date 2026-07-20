@@ -34,6 +34,14 @@ namespace Liekinheitin.CreativeTool.Services
                 project.AudioFilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, project.AudioFilePath));
             }
 
+            foreach (var media in project.MediaOverlays)
+            {
+                if (!string.IsNullOrWhiteSpace(media.FilePath) && !Path.IsPathRooted(media.FilePath))
+                {
+                    media.FilePath = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path) ?? string.Empty, media.FilePath));
+                }
+            }
+
             return project;
         }
     }

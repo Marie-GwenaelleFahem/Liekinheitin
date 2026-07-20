@@ -14,6 +14,12 @@ namespace Liekinheitin.CreativeTool.Models
 
         public bool IsAudio { get; set; }
 
+        public bool IsHidden { get; set; }
+
+        public bool IsMedia { get; set; }
+
+        public string? MediaOverlayId { get; set; }
+
         public TargetSelection Target { get; set; } = TargetSelection.FullWall();
 
         public RgbwColor Color { get; set; } = RgbwColor.White;

@@ -17,6 +17,33 @@
             <Setter Property="FontSize" Value="12" />
             <Setter Property="FontWeight" Value="SemiBold" />
         </Style>
+        <Style x:Key="ShapeButtonStyle" TargetType="Button">
+            <Setter Property="Foreground" Value="#F5F7FA" />
+            <Setter Property="Background" Value="#343A46" />
+            <Setter Property="BorderBrush" Value="#566277" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="12,0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border x:Name="Chrome" CornerRadius="7" Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}">
+                            <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                              VerticalAlignment="Center" Margin="{TemplateBinding Padding}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Chrome" Property="Background" Value="#46536A" />
+                                <Setter TargetName="Chrome" Property="BorderBrush" Value="#8296B8" />
+                            </Trigger>
+                            <Trigger Property="IsPressed" Value="True"><Setter TargetName="Chrome" Property="Background" Value="#283142" /></Trigger>
+                            <Trigger Property="IsEnabled" Value="False"><Setter TargetName="Chrome" Property="Opacity" Value="0.4" /></Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
     </Window.Resources>
     <DockPanel LastChildFill="True">
         <Menu DockPanel.Dock="Top" Background="#2B2B2B" Foreground="#F4F4F4">
@@ -113,7 +140,12 @@
                                FontWeight="SemiBold"
                                Text="Preview LED" />
 
-                    <local:PixelGridView x:Name="LedPreview" Grid.Row="1" Margin="12" />
+                    <Grid Grid.Row="1" Margin="12" ClipToBounds="True">
+                        <local:PixelGridView x:Name="LedPreview" />
+                        <Image x:Name="MediaImageOverlay" Stretch="Uniform" Cursor="SizeAll" Visibility="Collapsed" />
+                        <MediaElement x:Name="MediaVideoOverlay" Stretch="Uniform" IsHitTestVisible="False"
+                                      LoadedBehavior="Manual" UnloadedBehavior="Manual" Visibility="Collapsed" />
+                    </Grid>
                 </Grid>
             </Border>
 
@@ -276,10 +308,28 @@
                                            Margin="0,0,0,12"
                                            Text="Créer une barre de forme" />
 
+                                <Border Margin="0,0,0,14" Padding="10" CornerRadius="8"
+                                        Background="#202631" BorderBrush="#46536A" BorderThickness="1">
+                                    <StackPanel>
+                                        <Grid Margin="0,0,0,8">
+                                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                            <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Taille de la forme sélectionnée" />
+                                            <TextBlock Grid.Column="1" Foreground="#AFC7EE" Text="± 15 %" />
+                                        </Grid>
+                                        <UniformGrid Columns="2">
+                                            <Button x:Name="ResizeSmallerButton" Style="{StaticResource ShapeButtonStyle}"
+                                                    Height="30" Margin="0,0,5,0" Tag="0.85" Content="− Réduire" />
+                                            <Button x:Name="ResizeLargerButton" Style="{StaticResource ShapeButtonStyle}"
+                                                    Height="30" Margin="5,0,0,0" Tag="1.15" Content="+ Agrandir" />
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
                                 <ItemsControl x:Name="ShapesItemsControl">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate>
-                                            <Button Margin="0,0,0,8"
+                                            <Button Style="{StaticResource ShapeButtonStyle}"
+                                                    Margin="0,0,0,8"
                                                     Height="32"
                                                     HorizontalContentAlignment="Left"
                                                     Content="{Binding DisplayName}"
@@ -334,6 +384,27 @@
                                     Value="1"
                                     TickFrequency="0.05"
                                     IsSnapToTickEnabled="False" />
+                        </StackPanel>
+                    </TabItem>
+
+                    <TabItem Header="Médias">
+                        <StackPanel Margin="0,12,0,0">
+                            <TextBlock Margin="0,0,0,16" Foreground="#F4F4F4" FontSize="16" FontWeight="SemiBold"
+                                       Text="Image, GIF ou vidéo" />
+                            <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Fichier" />
+                            <TextBlock x:Name="MediaFileTextBlock" Margin="0,4,0,10" Foreground="#DADADA"
+                                       Text="Aucun média sélectionné" TextTrimming="CharacterEllipsis" />
+                            <Button x:Name="SelectMediaButton" Height="34" Margin="0,0,0,14" Content="Choisir un média…" />
+                            <Grid Margin="0,0,0,12">
+                                <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="12"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+                                <StackPanel><TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Début"/><TextBox x:Name="MediaStartTextBox" Margin="0,4,0,0" Text="0"/></StackPanel>
+                                <StackPanel Grid.Column="2"><TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Durée"/><TextBox x:Name="MediaDurationTextBox" Margin="0,4,0,0" Text="3"/></StackPanel>
+                            </Grid>
+                            <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Opacité" />
+                            <Slider x:Name="MediaOpacitySlider" Margin="0,4,0,16" Minimum="0" Maximum="1" Value="1" />
+                            <Button x:Name="AddMediaButton" Height="34" Content="Ajouter à l’animation" />
+                            <TextBlock Margin="0,14,0,0" Foreground="#9EADBF" TextWrapping="Wrap"
+                                       Text="Formats : PNG, JPG, BMP, GIF animé, MP4, WMV et AVI." />
                         </StackPanel>
                     </TabItem>
                 </TabControl>

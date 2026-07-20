@@ -6,7 +6,9 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Liekinheitin.Application.Interfaces;
 using Liekinheitin.CreativeTool.Models;
@@ -47,6 +49,14 @@ namespace Liekinheitin.CreativeTool.Views
         private bool _isUpdatingPlaybackUi;
         private bool _isUpdatingPropertyUi;
         private bool _isUpdatingAudioUi;
+        private string? _pendingMediaPath;
+        private string? _loadedMediaPath;
+        private readonly List<BitmapFrame> _gifFrames = new();
+        private readonly List<double> _gifFrameEnds = new();
+        private Point? _mediaDragStart;
+        private double _mediaDragOriginX;
+        private double _mediaDragOriginY;
+        private MediaOverlayClip? _activeMediaOverlay;
 
         public MainWindow()
         {
@@ -69,6 +79,7 @@ namespace Liekinheitin.CreativeTool.Views
             TimeSlider.ValueChanged += OnTimeSliderValueChanged;
             TimelineControl.ClipSelected += OnTimelineClipSelected;
             TimelineControl.ClipChanged += OnTimelineClipChanged;
+            TimelineControl.ClipActionRequested += OnTimelineClipActionRequested;
             ApplyPropertiesButton.Click += OnApplyPropertiesClick;
             ApplyDurationButton.Click += OnApplyDurationClick;
             ExtendTimelineButton.Click += OnExtendTimelineClick;
@@ -76,6 +87,11 @@ namespace Liekinheitin.CreativeTool.Views
             SelectAudioButton.Click += OnSelectAudioClick;
             ConfirmAudioButton.Click += OnConfirmAudioClick;
             AudioVolumeSlider.ValueChanged += OnAudioVolumeChanged;
+            SelectMediaButton.Click += OnSelectMediaClick;
+            AddMediaButton.Click += OnAddMediaClick;
+            MediaImageOverlay.MouseLeftButtonDown += OnMediaDragStarted;
+            MediaImageOverlay.MouseMove += OnMediaDragMoved;
+            MediaImageOverlay.MouseLeftButtonUp += OnMediaDragCompleted;
             LedPreview.PixelDragStarted += OnPreviewPixelDragStarted;
             LedPreview.PixelDragDelta += OnPreviewPixelDragDelta;
             LedPreview.PixelDragCompleted += OnPreviewPixelDragCompleted;
@@ -85,6 +101,8 @@ namespace Liekinheitin.CreativeTool.Views
             ReplayMotionButton.Click += OnReplayMotionClick;
             RedoMotionButton.Click += OnRedoMotionClick;
             ConfirmMotionButton.Click += OnConfirmMotionClick;
+            ResizeSmallerButton.Click += OnResizeSelectionClick;
+            ResizeLargerButton.Click += OnResizeSelectionClick;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
             _playbackController.StateChanged += (_, _) =>
             {
@@ -114,6 +132,7 @@ namespace Liekinheitin.CreativeTool.Views
             var currentTime = _playbackController.CurrentTime;
             TimelineControl.SetPlayhead(currentTime);
             RenderPreview(currentTime);
+            UpdateMediaOverlay(currentTime);
 
             if (_playbackController.Status == PlaybackStatus.Playing)
             {
@@ -160,6 +179,42 @@ namespace Liekinheitin.CreativeTool.Views
             _audioPlaybackService.Seek(_playbackController.CurrentTime);
             SyncAudioPlayback();
             UpdateAudioUi();
+            MarkDirty();
+        }
+
+        private void OnSelectMediaClick(object sender, RoutedEventArgs e)
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = "Médias (*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.mp4;*.wmv;*.avi)|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.mp4;*.wmv;*.avi|Tous les fichiers (*.*)|*.*"
+            };
+            if (dialog.ShowDialog(this) != true) return;
+            _pendingMediaPath = dialog.FileName;
+            MediaFileTextBlock.Text = Path.GetFileName(dialog.FileName);
+        }
+
+        private void OnAddMediaClick(object sender, RoutedEventArgs e)
+        {
+            if (string.IsNullOrWhiteSpace(_pendingMediaPath))
+            {
+                MessageBox.Show(this, "Choisis d'abord une image, un GIF ou une vidéo.", "Médias", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            var media = new MediaOverlayClip
+            {
+                Name = Path.GetFileNameWithoutExtension(_pendingMediaPath),
+                FilePath = _pendingMediaPath,
+                StartTime = Math.Max(0, ReadDouble(MediaStartTextBox, _playbackController.CurrentTime)),
+                Duration = Math.Max(0.05, ReadDouble(MediaDurationTextBox, 3)),
+                Opacity = Math.Clamp(MediaOpacitySlider.Value, 0, 1)
+            };
+            _project.MediaOverlays.Add(media);
+            GetOrCreateMediaTrack().Clips.Add(CreateMediaTimelineClip(media));
+            EnsureProjectDurationIncludesMedia();
+            TimelineControl.SetProject(_project);
+            _loadedMediaPath = null;
+            UpdateMediaOverlay(_playbackController.CurrentTime);
             MarkDirty();
         }
 
@@ -237,6 +292,16 @@ namespace Liekinheitin.CreativeTool.Views
             _selectedClip.StartTime = ReadDouble(ClipStartTextBox, _selectedClip.StartTime);
             _selectedClip.Duration = Math.Max(0.001, ReadDouble(ClipDurationTextBox, _selectedClip.Duration));
 
+            if (_selectedClip.IsMedia)
+            {
+                SyncMediaFromTimelineClip(_selectedClip);
+                EnsureProjectDurationIncludesMedia();
+                MarkDirty();
+                TimelineControl.Redraw();
+                UpdateMediaOverlay(_playbackController.CurrentTime);
+                return;
+            }
+
             if (_selectedClip.IsAudio)
             {
                 EnsureProjectDurationIncludesClips();
@@ -261,6 +326,69 @@ namespace Liekinheitin.CreativeTool.Views
             MarkDirty();
             TimelineControl.Redraw();
             RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnTimelineClipActionRequested(object? sender, ClipActionEventArgs e)
+        {
+            var track = FindTrackContainingClip(e.Clip);
+            if (track is null) return;
+
+            switch (e.Action)
+            {
+                case ClipAction.Edit:
+                    _selectedClip = e.Clip;
+                    TimelineControl.SelectClip(e.Clip);
+                    UpdatePropertyPanel(e.Clip);
+                    break;
+
+                case ClipAction.Duplicate:
+                    var duplicate = DuplicateClip(e.Clip);
+                    if (e.Clip.IsMedia && e.Clip.MediaOverlayId is not null)
+                    {
+                        var sourceMedia = _project.MediaOverlays.FirstOrDefault(media => media.Id == e.Clip.MediaOverlayId);
+                        if (sourceMedia is not null)
+                        {
+                            var mediaCopy = new MediaOverlayClip
+                            {
+                                Name = $"{sourceMedia.Name} (copie)", FilePath = sourceMedia.FilePath,
+                                StartTime = duplicate.StartTime, Duration = duplicate.Duration, Opacity = sourceMedia.Opacity,
+                                OffsetX = sourceMedia.OffsetX, OffsetY = sourceMedia.OffsetY
+                            };
+                            _project.MediaOverlays.Add(mediaCopy);
+                            duplicate.MediaOverlayId = mediaCopy.Id;
+                            duplicate.Name = mediaCopy.Name;
+                        }
+                    }
+                    track.Clips.Add(duplicate);
+                    _selectedClip = duplicate;
+                    EnsureProjectDurationIncludesClips();
+                    TimelineControl.SelectClip(duplicate);
+                    UpdatePropertyPanel(duplicate);
+                    MarkDirty();
+                    break;
+
+                case ClipAction.ToggleVisibility:
+                    e.Clip.IsHidden = !e.Clip.IsHidden;
+                    SyncMediaFromTimelineClip(e.Clip);
+                    TimelineControl.Redraw();
+                    RenderPreview(_playbackController.CurrentTime);
+                    MarkDirty();
+                    break;
+
+                case ClipAction.Delete:
+                    var answer = MessageBox.Show(this, $"Supprimer le clip « {e.Clip.Name} » ?", "Supprimer le clip", MessageBoxButton.YesNo, MessageBoxImage.Warning);
+                    if (answer != MessageBoxResult.Yes) return;
+                    track.Clips.Remove(e.Clip);
+                    if (e.Clip.IsMedia && e.Clip.MediaOverlayId is not null)
+                        _project.MediaOverlays.RemoveAll(media => media.Id == e.Clip.MediaOverlayId);
+                    _selectedClip = FindFirstClip(_project);
+                    TimelineControl.SetProject(_project);
+                    TimelineControl.SelectClip(_selectedClip);
+                    UpdatePropertyPanel(_selectedClip);
+                    RenderPreview(_playbackController.CurrentTime);
+                    MarkDirty();
+                    break;
+            }
         }
 
         private void OnShapeButtonClick(object sender, RoutedEventArgs e)
@@ -298,6 +426,39 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnResizeSelectionClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip?.Target.Type != TargetType.Selection || _selectedClip.Target.EntityIds.Count == 0)
+            {
+                MessageBox.Show(this, "Sélectionne d'abord une forme dans la timeline.", "Taille de la forme", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+
+            if (sender is not FrameworkElement { Tag: string factorText }
+                || !double.TryParse(factorText, NumberStyles.Float, CultureInfo.InvariantCulture, out var factor))
+            {
+                return;
+            }
+
+            _selectedClip.Target.EntityIds = SelectionTransformService.Scale(
+                _selectedClip.Target.EntityIds,
+                factor,
+                _project.WallWidth,
+                _project.WallHeight);
+
+            ClampMovementTarget(_selectedClip);
+            foreach (var keyframe in _selectedClip.MovementKeyframes)
+            {
+                var bounded = ClampMovementOffset(_selectedClip, keyframe.OffsetX, keyframe.OffsetY);
+                keyframe.OffsetX = bounded.OffsetX;
+                keyframe.OffsetY = bounded.OffsetY;
+            }
+
+            MarkDirty();
+            UpdateShapeMotionUi(_selectedClip);
             RenderPreview(_playbackController.CurrentTime);
         }
 
@@ -349,6 +510,7 @@ namespace Liekinheitin.CreativeTool.Views
         private void OnTimelineClipChanged(object? sender, TimelineClip clip)
         {
             _selectedClip = clip;
+            SyncMediaFromTimelineClip(clip);
             EnsureProjectDurationIncludesClips();
             EnsurePlaybackInsideClip(clip);
             UpdatePropertyPanel(clip);
@@ -633,6 +795,11 @@ namespace Liekinheitin.CreativeTool.Views
             _projectPath = projectPath;
             _isDirty = markDirty;
             _selectedClip = FindFirstClip(project);
+            EnsureMediaTimelineClips();
+            _loadedMediaPath = null;
+            MediaImageOverlay.Visibility = Visibility.Collapsed;
+            MediaVideoOverlay.Visibility = Visibility.Collapsed;
+            MediaVideoOverlay.Stop();
 
             _playbackController.Duration = Math.Max(1, project.Duration);
             LoadAudioFromProject();
@@ -867,6 +1034,160 @@ namespace Liekinheitin.CreativeTool.Views
             }
         }
 
+        private void EnsureProjectDurationIncludesMedia()
+        {
+            var end = _project.MediaOverlays.Select(media => media.StartTime + media.Duration).DefaultIfEmpty(1).Max();
+            if (end > _project.Duration) SetProjectDuration(end, markDirty: false);
+        }
+
+        private Track GetOrCreateMediaTrack()
+        {
+            var track = _project.Tracks.FirstOrDefault(item => string.Equals(item.Name, "Médias", StringComparison.OrdinalIgnoreCase));
+            if (track is not null) return track;
+            track = new Track { Name = "Médias" };
+            _project.Tracks.Add(track);
+            return track;
+        }
+
+        private static TimelineClip CreateMediaTimelineClip(MediaOverlayClip media) => new()
+        {
+            Name = media.Name,
+            StartTime = media.StartTime,
+            Duration = media.Duration,
+            IsMedia = true,
+            IsHidden = media.IsHidden,
+            MediaOverlayId = media.Id,
+            Color = new RgbwColor(245, 155, 55, 0)
+        };
+
+        private void EnsureMediaTimelineClips()
+        {
+            if (_project.MediaOverlays.Count == 0) return;
+            var track = GetOrCreateMediaTrack();
+            foreach (var media in _project.MediaOverlays)
+            {
+                if (string.IsNullOrWhiteSpace(media.Id)) media.Id = Guid.NewGuid().ToString("N");
+                if (!track.Clips.Any(clip => clip.MediaOverlayId == media.Id)) track.Clips.Add(CreateMediaTimelineClip(media));
+            }
+        }
+
+        private void SyncMediaFromTimelineClip(TimelineClip clip)
+        {
+            if (!clip.IsMedia || clip.MediaOverlayId is null) return;
+            var media = _project.MediaOverlays.FirstOrDefault(item => item.Id == clip.MediaOverlayId);
+            if (media is null) return;
+            media.Name = clip.Name;
+            media.StartTime = clip.StartTime;
+            media.Duration = clip.Duration;
+            media.IsHidden = clip.IsHidden;
+        }
+
+        private void OnMediaDragStarted(object sender, MouseButtonEventArgs e)
+        {
+            if (_activeMediaOverlay is null) return;
+            _mediaDragStart = e.GetPosition(LedPreview);
+            _mediaDragOriginX = _activeMediaOverlay.OffsetX;
+            _mediaDragOriginY = _activeMediaOverlay.OffsetY;
+            MediaImageOverlay.CaptureMouse();
+            e.Handled = true;
+        }
+
+        private void OnMediaDragMoved(object sender, MouseEventArgs e)
+        {
+            if (_mediaDragStart is null || _activeMediaOverlay is null || e.LeftButton != MouseButtonState.Pressed) return;
+            var current = e.GetPosition(LedPreview);
+            _activeMediaOverlay.OffsetX = _mediaDragOriginX + current.X - _mediaDragStart.Value.X;
+            _activeMediaOverlay.OffsetY = _mediaDragOriginY + current.Y - _mediaDragStart.Value.Y;
+            ApplyMediaTranslation(_activeMediaOverlay);
+            MarkDirty();
+            e.Handled = true;
+        }
+
+        private void OnMediaDragCompleted(object sender, MouseButtonEventArgs e)
+        {
+            _mediaDragStart = null;
+            MediaImageOverlay.ReleaseMouseCapture();
+            e.Handled = true;
+        }
+
+        private void ApplyMediaTranslation(MediaOverlayClip media)
+        {
+            var transform = new TranslateTransform(media.OffsetX, media.OffsetY);
+            MediaImageOverlay.RenderTransform = transform;
+            MediaVideoOverlay.RenderTransform = transform;
+        }
+
+        private void UpdateMediaOverlay(double currentTime)
+        {
+            var active = _project.MediaOverlays.LastOrDefault(media => !media.IsHidden &&
+                currentTime >= media.StartTime && currentTime <= media.StartTime + media.Duration && File.Exists(media.FilePath));
+            if (active is null)
+            {
+                _activeMediaOverlay = null;
+                MediaImageOverlay.Visibility = Visibility.Collapsed;
+                MediaVideoOverlay.Visibility = Visibility.Collapsed;
+                MediaVideoOverlay.Pause();
+                return;
+            }
+
+            _activeMediaOverlay = active;
+            ApplyMediaTranslation(active);
+
+            if (!string.Equals(_loadedMediaPath, active.FilePath, StringComparison.OrdinalIgnoreCase)) LoadMediaOverlay(active.FilePath);
+            var localTime = Math.Max(0, currentTime - active.StartTime);
+            MediaImageOverlay.Opacity = active.Opacity;
+            MediaVideoOverlay.Opacity = active.Opacity;
+
+            if (IsVideoFile(active.FilePath))
+            {
+                MediaImageOverlay.Visibility = Visibility.Collapsed;
+                MediaVideoOverlay.Visibility = Visibility.Visible;
+                var wanted = TimeSpan.FromSeconds(localTime);
+                if (Math.Abs((MediaVideoOverlay.Position - wanted).TotalMilliseconds) > 180) MediaVideoOverlay.Position = wanted;
+                if (_playbackController.Status == PlaybackStatus.Playing) MediaVideoOverlay.Play(); else MediaVideoOverlay.Pause();
+                return;
+            }
+
+            MediaVideoOverlay.Visibility = Visibility.Collapsed;
+            MediaImageOverlay.Visibility = Visibility.Visible;
+            if (_gifFrames.Count > 1)
+            {
+                var total = _gifFrameEnds[^1];
+                var gifTime = total <= 0 ? 0 : localTime % total;
+                var index = _gifFrameEnds.FindIndex(end => gifTime < end);
+                MediaImageOverlay.Source = _gifFrames[Math.Max(0, index)];
+            }
+        }
+
+        private void LoadMediaOverlay(string path)
+        {
+            _loadedMediaPath = path;
+            _gifFrames.Clear();
+            _gifFrameEnds.Clear();
+            MediaVideoOverlay.Stop();
+            if (IsVideoFile(path))
+            {
+                MediaVideoOverlay.Source = new Uri(path, UriKind.Absolute);
+                return;
+            }
+
+            var decoder = BitmapDecoder.Create(new Uri(path, UriKind.Absolute), BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.OnLoad);
+            var elapsed = 0.0;
+            foreach (var frame in decoder.Frames)
+            {
+                _gifFrames.Add(frame);
+                var delay = 0.1;
+                if (frame.Metadata is BitmapMetadata metadata && metadata.GetQuery("/grctlext/Delay") is ushort centiseconds)
+                    delay = Math.Max(0.02, centiseconds / 100.0);
+                elapsed += delay;
+                _gifFrameEnds.Add(elapsed);
+            }
+            MediaImageOverlay.Source = _gifFrames.FirstOrDefault();
+        }
+
+        private static bool IsVideoFile(string path)
+            => new[] { ".mp4", ".wmv", ".avi" }.Contains(Path.GetExtension(path), StringComparer.OrdinalIgnoreCase);
+
         private void EnsurePlaybackInsideClip(TimelineClip clip)
         {
             if (_playbackController.CurrentTime >= clip.StartTime && _playbackController.CurrentTime <= clip.EndTime)
@@ -996,6 +1317,42 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             return null;
+        }
+
+        private static TimelineClip DuplicateClip(TimelineClip source)
+        {
+            return new TimelineClip
+            {
+                Name = $"{source.Name} (copie)",
+                StartTime = source.EndTime + 0.1,
+                Duration = source.Duration,
+                EffectType = source.EffectType,
+                IsAudio = source.IsAudio,
+                IsHidden = false,
+                IsMedia = source.IsMedia,
+                MediaOverlayId = source.MediaOverlayId,
+                Target = new TargetSelection
+                {
+                    Type = source.Target.Type,
+                    TrackName = source.Target.TrackName,
+                    EntityIds = source.Target.EntityIds.ToList()
+                },
+                Color = source.Color,
+                Intensity = source.Intensity,
+                Speed = source.Speed,
+                MovementEffect = source.MovementEffect,
+                MovementOffsetX = source.MovementOffsetX,
+                MovementOffsetY = source.MovementOffsetY,
+                IsMotionDraft = source.IsMotionDraft,
+                MovementKeyframes = source.MovementKeyframes
+                    .Select(keyframe => new MovementKeyframe
+                    {
+                        Time = keyframe.Time,
+                        OffsetX = keyframe.OffsetX,
+                        OffsetY = keyframe.OffsetY
+                    })
+                    .ToList()
+            };
         }
 
         private static double GetMaxClipEnd(ShowProject project)

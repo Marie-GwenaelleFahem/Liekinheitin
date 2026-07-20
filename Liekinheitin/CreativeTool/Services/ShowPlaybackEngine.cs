@@ -15,7 +15,7 @@ namespace Liekinheitin.CreativeTool.Services
 
             foreach (var track in project.Tracks.Where(track => !track.IsMuted))
             {
-                foreach (var clip in track.Clips.Where(clip => !clip.IsAudio && IsClipActive(clip, currentTime)))
+                foreach (var clip in track.Clips.Where(clip => !clip.IsAudio && !clip.IsMedia && !clip.IsHidden && IsClipActive(clip, currentTime)))
                 {
                     ApplyClip(colors, clip, currentTime, totalPixels, project.WallWidth, project.WallHeight);
                 }
