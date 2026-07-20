@@ -56,7 +56,7 @@ namespace Liekinheitin.RoutingHost.Views
         private readonly Dictionary<string, string> _statusByController = new();
         private readonly DispatcherTimer _healthTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
-        private readonly LogService _logService = new();
+        private readonly LogService _logService = LogService.Instance;
         private readonly UniverseSnapshotStore _snapshotStore = new();
         private IPacketSender _packetSender = null!;
         private RoutingEngine _routingEngine = null!;
