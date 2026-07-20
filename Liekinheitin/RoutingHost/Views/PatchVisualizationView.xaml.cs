@@ -56,23 +56,28 @@ namespace Liekinheitin.RoutingHost.Views
         private readonly Dictionary<string, string> _statusByController = new();
         private readonly DispatcherTimer _healthTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
-        private readonly LogService _logService = new();
-        private readonly UniverseSnapshotStore _snapshotStore = new();
         private IPacketSender _packetSender = null!;
         private RoutingEngine _routingEngine = null!;
 
         public PatchVisualizationView()
         {
             InitializeComponent();
+            // Tout le contenu métier a été retiré du constructeur : cette vue ne construit
+            // plus rien elle-même. Elle attend qu'Initialize() lui fournisse les instances
+            // partagées construites une seule fois dans App.xaml.cs.
+        }
 
-            _patchService = new PatchService(new JsonPatchLoader());
-
-            string patchPath = Path.GetFullPath(
-                Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "patch.json"));
-            _patchService.LoadPatch(patchPath);
-
-            _packetSender = new ArtNetSender(_logService, _snapshotStore);
-            _routingEngine = new RoutingEngine(_patchService, _packetSender);
+        /// <summary>
+        /// Injecte les instances partagées (construites dans App.xaml.cs, communes à toute
+        /// l'application) au lieu que la vue les crée elle-même. Évite d'avoir deux
+        /// PatchService / ArtNetSender différents : celui-ci et celui qui reçoit le vrai
+        /// flux temps réel de CreativeTool doivent être un seul et même objet.
+        /// </summary>
+        public void Initialize(PatchService patchService, IPacketSender packetSender, RoutingEngine routingEngine)
+        {
+            _patchService = patchService;
+            _packetSender = packetSender;
+            _routingEngine = routingEngine;
 
             _healthChecker.ControllerStatusChanged += OnControllerStatusChanged;
             _healthTimer.Tick += async (s, e) => await _healthChecker.CheckAllAsync(_patchService.Controllers);
@@ -200,10 +205,6 @@ namespace Liekinheitin.RoutingHost.Views
             string color = status.IsReachable ? "LimeGreen" : "Red";
             _statusByController[status.ControllerId] = color;
 
-            // Met à jour toutes les cartes actuellement affichées qui appartiennent à ce
-            // contrôleur (que ce soit la carte du contrôleur lui-même, ou des cartes
-            // univers/LED en dessous) : c'est ce qui garantit que l'indicateur reste le
-            // même partout, quel que soit le niveau affiché au moment du changement.
             foreach (var card in CardList.ItemsSource?.Cast<CardItem>() ?? Enumerable.Empty<CardItem>())
             {
                 if (card.ControllerId == status.ControllerId || (card.Kind == "Controller" && card.Name == status.ControllerId))
@@ -244,14 +245,13 @@ namespace Liekinheitin.RoutingHost.Views
             foreach (int id in entityIds)
             {
                 var range = _patchService.FindAddress(id);
-                if (range is null) continue; // entité inconnue du patch, on l'ignore
+                if (range is null) continue;
 
                 var channels = new byte[range.ChannelsPerEntity];
 
                 if (colorName == "Red") channels[0] = 255;
                 else if (colorName == "Green" && channels.Length > 1) channels[1] = 255;
                 else if (colorName == "Blue" && channels.Length > 2) channels[2] = 255;
-                // "Off" : le tableau reste à zéro, déjà le cas par défaut en C#
 
                 state.Entities.Add(new Entity { Id = id, Channels = channels });
             }

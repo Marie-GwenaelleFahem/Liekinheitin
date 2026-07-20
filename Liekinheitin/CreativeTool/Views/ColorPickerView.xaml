@@ -6,7 +6,29 @@
              xmlns:local="clr-namespace:Liekinheitin.CreativeTool.Views"
              mc:Ignorable="d" 
              d:DesignHeight="450" d:DesignWidth="800">
-    <Grid>
-            
-    </Grid>
+    <StackPanel Orientation="Vertical" Margin="8">
+        <Rectangle Height="40" Fill="{Binding CurrentColor, Converter={StaticResource ColorToBrush}}" />
+
+        <TextBlock Text="R" />
+        <Slider Minimum="0" Maximum="255" Value="{Binding R}" />
+        <TextBlock Text="G" />
+        <Slider Minimum="0" Maximum="255" Value="{Binding G}" />
+        <TextBlock Text="B" />
+        <Slider Minimum="0" Maximum="255" Value="{Binding B}" />
+
+        <ItemsControl ItemsSource="{Binding Palette}">
+            <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <WrapPanel />
+                </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <Border Width="24" Height="24" Margin="2"
+                            Background="{Binding Converter={StaticResource ColorToBrush}}"
+                            MouseLeftButtonDown="OnPaletteClick" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
+    </StackPanel>
 </UserControl>

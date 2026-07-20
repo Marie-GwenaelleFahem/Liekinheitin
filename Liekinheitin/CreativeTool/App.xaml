@@ -2,8 +2,8 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Liekinheitin.CreativeTool"
-             StartupUri="Views/MainWindow.xaml">
+             xmlns:converters="clr-namespace:Liekinheitin.CreativeTool.Converters">
     <Application.Resources>
-         
+        <converters:ColorToBrushConverter x:Key="ColorToBrush" />
     </Application.Resources>
 </Application>

@@ -1,26 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using Liekinheitin.CreativeTool.ViewModels;
 
 namespace Liekinheitin.CreativeTool.Views
 {
-    /// <summary>
-    /// Logique d'interaction pour ColorPickerView.xaml
-    /// </summary>
     public partial class ColorPickerView : UserControl
     {
         public ColorPickerView()
         {
             InitializeComponent();
+        }
+
+        private void OnPaletteClick(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is FrameworkElement el &&
+                el.DataContext is Color color &&
+                DataContext is ColorPickerViewModel vm)
+            {
+                vm.SelectFromPalette(color);
+            }
         }
     }
 }

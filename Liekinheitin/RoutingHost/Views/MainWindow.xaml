@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:Liekinheitin.RoutingHost"
         xmlns:views="clr-namespace:Liekinheitin.RoutingHost.Views"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800" Background="#FF14171C">
+        Title="Liekinheitin - RoutingHost" Height="450" Width="800" Background="#FF14171C">
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="*"/>
@@ -14,6 +14,6 @@
             <RowDefinition Height="*"/>
             <!-- moitié basse : le patch -->
         </Grid.RowDefinitions>
-        <views:PatchVisualizationView Grid.Row="1" Loaded="PatchVisualizationView_Loaded" />
+        <views:PatchVisualizationView x:Name="PatchView" Grid.Row="1" />
     </Grid>
 </Window>

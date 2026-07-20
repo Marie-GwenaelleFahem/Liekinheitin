@@ -1,31 +1,19 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Linq;
 
 namespace Liekinheitin.Application.Services
 {
-
-    /// <summary>
-    /// Le cœur du routage : transforme un <see cref="State"/> reçu en trames DMX prêtes à
-    /// envoyer aux contrôleurs.
-    /// </summary>
-    /// <remarks>
-    /// <see cref="Start"/> s'abonne à l'événement <see cref="IStateSource.StateReceived"/> de la
-    /// source fournie. Chaque fois qu'un <see cref="State"/> arrive, <see cref="OnStateReceived"/>
-    /// appelle <see cref="BuildFrames"/> : pour chaque <see cref="Entity"/> du State, elle
-    /// demande à <see cref="PatchService.FindAddress"/> la <see cref="PatchRange"/>
-    /// correspondante, calcule le canal exact à partir de cette plage, regroupe les valeurs de
-    /// toutes les entités par (contrôleur, univers), puis construit une <see cref="DmxFrame"/>
-    /// par univers concerné. Elle transmet ensuite chaque trame à
-    /// <see cref="IPacketSender.Send"/>, sans jamais savoir s'il s'agit réellement d'ArtNet ou
-    /// d'un autre protocole.
-    /// </remarks>
     public class RoutingEngine
     {
         private readonly PatchService _patchService;
         private readonly IPacketSender _packetSender;
+
+        // Snapshot cumulé de tous les canaux actuellement connus. Nécessaire depuis que
+        // CreativeTool peut n'envoyer que les entités modifiées (delta) : sans ce cumul,
+        // BuildFrames "oublierait" les LED non touchées par la frame courante et les
+        // éteindrait par erreur à chaque appel.
+        private readonly Dictionary<int, byte[]> _currentChannelsByEntityId = new();
 
         public RoutingEngine(PatchService patchService, IPacketSender packetSender)
         {
@@ -33,15 +21,11 @@ namespace Liekinheitin.Application.Services
             _packetSender = packetSender;
         }
 
-        /// <summary>S'abonne à la source d'état fournie pour démarrer le routage en continu.</summary>
-        /// <param name="stateSource">La source qui signalera l'arrivée de chaque nouvel état.</param>
         public void Start(IStateSource stateSource)
         {
             stateSource.StateReceived += OnStateReceived;
         }
 
-        /// <summary>Appelée à chaque State reçu : construit les trames et les envoie.</summary>
-        /// <param name="state">L'état reçu à router.</param>
         public void OnStateReceived(State state)
         {
             foreach (var frame in BuildFrames(state))
@@ -50,53 +34,55 @@ namespace Liekinheitin.Application.Services
             }
         }
 
-        /// <summary>
-        /// Calcule, pour chaque entité du State, son adresse DMX exacte, et regroupe le résultat
-        /// en une trame par (contrôleur, univers) concerné.
-        /// </summary>
-        /// <param name="state">L'état à traduire en trames DMX.</param>
-        /// <returns>La liste des trames prêtes à être envoyées.</returns>
         public List<DmxFrame> BuildFrames(State state)
         {
-            // Un buffer de 512 canaux par (contrôleur, univers) réellement concerné.
-            var buffers = new Dictionary<(string ControllerId, int Universe), byte[]>();
+            // Fusionne le state reçu (complet ou partiel) dans le snapshot cumulé.
+            var touchedControllerUniverses = new HashSet<(string ControllerId, int Universe)>();
 
             foreach (var entity in state.Entities)
             {
+                _currentChannelsByEntityId[entity.Id] = entity.Channels;
+
                 var range = _patchService.FindAddress(entity.Id);
-                if (range is null)
-                {
-                    continue; // Entité inconnue du patch : ignorée plutôt que de faire planter le routage.
-                }
+                if (range is null) continue;
+                touchedControllerUniverses.Add((range.ControllerId, range.Universe));
+            }
 
-                var key = (range.ControllerId, range.Universe);
-                if (!buffers.TryGetValue(key, out var buffer))
-                {
-                    buffer = new byte[512];
-                    buffers[key] = buffer;
-                }
+            var buffers = new Dictionary<(string ControllerId, int Universe), byte[]>();
 
-                int positionDansLaPlage = entity.Id - range.EntityIdStart;
-                int canalDeDepart = (range.ChannelStart - 1) + positionDansLaPlage * range.ChannelsPerEntity;
+            foreach (var (controllerId, universe) in touchedControllerUniverses)
+            {
+                var buffer = new byte[512];
 
-                for (int i = 0; i < entity.Channels.Length; i++)
+                // Reconstruit le buffer complet de cet univers à partir du snapshot cumulé
+                // (pas seulement des entités de la frame courante), pour ne pas éteindre
+                // les LED de cet univers qui n'ont pas changé cette fois-ci.
+                foreach (var range in _patchService.Ranges.Where(r => r.ControllerId == controllerId && r.Universe == universe))
                 {
-                    int canal = canalDeDepart + i;
-                    if (canal >= 0 && canal < 512)
+                    for (int id = range.EntityIdStart; id <= range.EntityIdEnd; id++)
                     {
-                        buffer[canal] = entity.Channels[i];
+                        if (!_currentChannelsByEntityId.TryGetValue(id, out var channels)) continue;
+
+                        int positionDansLaPlage = id - range.EntityIdStart;
+                        int canalDeDepart = (range.ChannelStart - 1) + positionDansLaPlage * range.ChannelsPerEntity;
+
+                        for (int i = 0; i < channels.Length; i++)
+                        {
+                            int canal = canalDeDepart + i;
+                            if (canal >= 0 && canal < 512)
+                                buffer[canal] = channels[i];
+                        }
                     }
                 }
+
+                buffers[(controllerId, universe)] = buffer;
             }
 
             var frames = new List<DmxFrame>();
             foreach (var ((controllerId, universe), data) in buffers)
             {
                 var controller = _patchService.Controllers.FirstOrDefault(c => c.Id == controllerId);
-                if (controller is null)
-                {
-                    continue; // Contrôleur référencé par le patch mais absent de la liste : ignoré.
-                }
+                if (controller is null) continue;
 
                 frames.Add(new DmxFrame
                 {
@@ -108,6 +94,5 @@ namespace Liekinheitin.Application.Services
 
             return frames;
         }
-
     }
 }

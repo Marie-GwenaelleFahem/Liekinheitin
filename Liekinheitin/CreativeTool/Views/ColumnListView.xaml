@@ -1,0 +1,14 @@
+﻿<UserControl x:Class="Liekinheitin.CreativeTool.Views.ColumnListView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <ListBox x:Name="ColumnListBox"
+             ItemsSource="{Binding Columns}"
+             SelectionChanged="OnColumnSelected"
+             MaxHeight="300">
+        <ListBox.ItemTemplate>
+            <DataTemplate>
+                <TextBlock Text="{Binding}" Margin="4,2" />
+            </DataTemplate>
+        </ListBox.ItemTemplate>
+    </ListBox>
+</UserControl>

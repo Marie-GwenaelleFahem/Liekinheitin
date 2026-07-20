@@ -11,6 +11,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\Liekinheitin.Application.csproj" />
     <ProjectReference Include="..\Domain\Liekinheitin.Domain.csproj" />
+    <ProjectReference Include="..\Infrastructure\Liekinheitin.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>
