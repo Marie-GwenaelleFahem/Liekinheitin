@@ -16,6 +16,9 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly Timer _publishTimer;
         private int _tickCount;
         private const int FullResyncEveryNTicks = 80; // ~2s à 40Hz
+        public Timeline Timeline { get; } = new();
+        public TimelinePlayer TimelinePlayer { get; }
+        public TimelineViewModel TimelineViewModel { get; }
 
         public BrushTool Brush { get; }
         public SceneManager Scene => _scene;
@@ -37,6 +40,8 @@ namespace Liekinheitin.CreativeTool.ViewModels
             ColumnFill = new ColumnFillTool(scene);
             ColumnList = new ColumnListViewModel(layout.Columns);
             ShapeInspector = new ShapeInspectorViewModel(scene);
+            TimelinePlayer = new TimelinePlayer(Timeline, scene);
+            TimelineViewModel = new TimelineViewModel(Timeline, TimelinePlayer, scene);
 
             _publishTimer = new Timer(_ => PublishTick(), null, 0, 25);
         }
@@ -65,6 +70,10 @@ namespace Liekinheitin.CreativeTool.ViewModels
             _publisher.Publish(new State { Entities = entities });
         }
 
-        public void Dispose() => _publishTimer.Dispose();
+        public void Dispose()
+        {
+            _publishTimer.Dispose();
+            TimelinePlayer.Dispose();
+        }
     }
 }

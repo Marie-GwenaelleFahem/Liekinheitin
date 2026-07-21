@@ -34,6 +34,13 @@ namespace Liekinheitin.CreativeTool.Views
             InitializeComponent();
         }
 
+        public void RefreshDirtyFromScene()
+        {
+            var dirty = _scene.Display.ConsumeUiDirty();
+            var cells = dirty.Select(c => (c.Col, c.Row, _scene.Display.GetPixel(c.Col, c.Row))).ToList();
+            _renderer.DrawPixels(cells);
+        }
+
         public void Initialize(WallLayout layout, SceneManager scene, BrushTool brush, Func<Color> getCurrentColor)
         {
             _layout = layout;
@@ -99,7 +106,7 @@ namespace Liekinheitin.CreativeTool.Views
 
                 _scene.MoveShape(_selectedShapeId, newX, newY); // clampe automatiquement
 
-                RefreshFromScene();
+                RefreshDirtyFromScene();
 
                 var shape = _scene.Shapes.FirstOrDefault(s => s.Id == _selectedShapeId);
                 if (shape is not null)
@@ -127,7 +134,7 @@ namespace Liekinheitin.CreativeTool.Views
             if (col < 0 || col >= _layout.Columns || row < 0 || row >= _layout.Rows) return;
 
             if (_brush.Paint(col, row))
-                RefreshFromScene();
+                RefreshDirtyFromScene();
         }
 
         // ----- Dépôt d'une nouvelle forme -----
@@ -143,7 +150,7 @@ namespace Liekinheitin.CreativeTool.Views
             int y = dropRow - DefaultShapeSize / 2;
 
             var shape = _scene.AddShape(shapeType, x, y, DefaultShapeSize, DefaultShapeSize, _getCurrentColor());
-            RefreshFromScene();
+            RefreshDirtyFromScene();
 
             _selectedShapeId = shape.Id;
             DrawSelectionOverlay(shape);

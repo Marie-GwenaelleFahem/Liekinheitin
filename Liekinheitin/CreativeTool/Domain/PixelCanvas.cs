@@ -1,13 +1,16 @@
-﻿using System.Windows.Media;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Windows.Media;
 
 namespace Liekinheitin.CreativeTool.Domain
 {
     public sealed class PixelCanvas
     {
         private readonly Color[,] _pixels;
-        private readonly Dictionary<(int Col, int Row), int> _dirtyResendCounts = new();
+        private readonly Dictionary<(int Col, int Row), int> _networkDirtyResendCounts = new();
+        private readonly HashSet<(int Col, int Row)> _uiDirty = new();
         private readonly object _lock = new();
-        private const int ResendCount = 3; // survit à ~2 pertes UDP consécutives sur ce pixel
+        private const int ResendCount = 1;
 
         public int Columns { get; }
         public int Rows { get; }
@@ -31,7 +34,8 @@ namespace Liekinheitin.CreativeTool.Domain
             lock (_lock)
             {
                 _pixels[col, row] = color;
-                _dirtyResendCounts[(col, row)] = ResendCount;
+                _networkDirtyResendCounts[(col, row)] = ResendCount;
+                _uiDirty.Add((col, row));
             }
         }
 
@@ -43,30 +47,37 @@ namespace Liekinheitin.CreativeTool.Domain
                     for (int r = 0; r < Rows; r++)
                     {
                         _pixels[c, r] = color;
-                        _dirtyResendCounts[(c, r)] = ResendCount;
+                        _networkDirtyResendCounts[(c, r)] = ResendCount;
+                        _uiDirty.Add((c, r));
                     }
             }
         }
 
-        /// <summary>
-        /// Récupère les pixels encore "à renvoyer" (modifiés récemment, pas encore
-        /// confirmés assez de fois) et décrémente leur compteur. Un pixel modifié une
-        /// seule fois est donc envoyé ResendCount fois de suite avant d'être considéré
-        /// stable — tolère la perte d'un ou deux paquets UDP sans laisser de trace.
-        /// </summary>
+        /// <summary>Pour l'envoi réseau (delta) : renvoie chaque pixel modifié ResendCount fois
+        /// de suite avant de l'estimer stable (tolère la perte d'un paquet UDP).</summary>
         public List<(int Col, int Row)> ConsumeDirty()
         {
             lock (_lock)
             {
-                var list = _dirtyResendCounts.Keys.ToList();
-
+                var list = _networkDirtyResendCounts.Keys.ToList();
                 foreach (var key in list)
                 {
-                    int remaining = _dirtyResendCounts[key] - 1;
-                    if (remaining <= 0) _dirtyResendCounts.Remove(key);
-                    else _dirtyResendCounts[key] = remaining;
+                    int remaining = _networkDirtyResendCounts[key] - 1;
+                    if (remaining <= 0) _networkDirtyResendCounts.Remove(key);
+                    else _networkDirtyResendCounts[key] = remaining;
                 }
+                return list;
+            }
+        }
 
+        /// <summary>Pour l'affichage écran : renvoie chaque pixel modifié une seule fois
+        /// (le rendu local est synchrone, pas de perte possible comme sur le réseau).</summary>
+        public List<(int Col, int Row)> ConsumeUiDirty()
+        {
+            lock (_lock)
+            {
+                var list = _uiDirty.ToList();
+                _uiDirty.Clear();
                 return list;
             }
         }

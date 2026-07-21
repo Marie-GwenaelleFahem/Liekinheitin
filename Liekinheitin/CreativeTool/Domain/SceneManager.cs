@@ -12,6 +12,10 @@ namespace Liekinheitin.CreativeTool.Domain
         private readonly PixelCanvas _display;
         private readonly List<PlacedShape> _shapes = new();
 
+        // Cache de la géométrie rasterisée par forme, invalidé uniquement quand LA forme
+        // concernée change (position/taille/scale) — pas à chaque recomposition globale.
+        private readonly Dictionary<Guid, HashSet<(int Col, int Row)>> _shapeCellCache = new();
+
         public PixelCanvas Display => _display;
         public IReadOnlyList<PlacedShape> Shapes => _shapes;
 
@@ -46,7 +50,7 @@ namespace Liekinheitin.CreativeTool.Domain
         public void ClearFreehand(Color color)
         {
             _freehand.Clear(color);
-            RecomposeAll(); // opération rare (bouton test), le coût est acceptable ici
+            RecomposeAll();
         }
 
         public PlacedShape AddShape(ShapeType type, int x, int y, int width, int height, Color color)
@@ -54,7 +58,8 @@ namespace Liekinheitin.CreativeTool.Domain
             var shape = new PlacedShape { Type = type, BaseWidth = width, BaseHeight = height, Color = color };
             ClampToGrid(shape, x, y);
             _shapes.Add(shape);
-            RecomposeCells(ShapeCells(shape));
+            InvalidateCache(shape.Id);
+            RecomposeCells(GetShapeCells(shape));
             return shape;
         }
 
@@ -62,8 +67,9 @@ namespace Liekinheitin.CreativeTool.Domain
         {
             var shape = Find(id);
             if (shape is null) return;
-            var cells = ShapeCells(shape).ToList();
+            var cells = GetShapeCells(shape).ToList();
             _shapes.Remove(shape);
+            InvalidateCache(id);
             RecomposeCells(cells);
         }
 
@@ -72,9 +78,10 @@ namespace Liekinheitin.CreativeTool.Domain
             var shape = Find(id);
             if (shape is null) return;
 
-            var oldCells = ShapeCells(shape).ToList();
+            var oldCells = GetShapeCells(shape).ToList();
             ClampToGrid(shape, newX, newY);
-            var newCells = ShapeCells(shape);
+            InvalidateCache(id); // géométrie changée : le cache de CETTE forme est obsolète
+            var newCells = GetShapeCells(shape);
 
             RecomposeCells(oldCells.Union(newCells));
         }
@@ -84,11 +91,12 @@ namespace Liekinheitin.CreativeTool.Domain
             var shape = Find(id);
             if (shape is null) return;
 
-            var oldCells = ShapeCells(shape).ToList();
+            var oldCells = GetShapeCells(shape).ToList();
             shape.BaseWidth = Math.Max(1, newBaseWidth);
             shape.BaseHeight = Math.Max(1, newBaseHeight);
             ClampToGrid(shape, shape.X, shape.Y);
-            var newCells = ShapeCells(shape);
+            InvalidateCache(id);
+            var newCells = GetShapeCells(shape);
 
             RecomposeCells(oldCells.Union(newCells));
         }
@@ -98,10 +106,11 @@ namespace Liekinheitin.CreativeTool.Domain
             var shape = Find(id);
             if (shape is null) return;
 
-            var oldCells = ShapeCells(shape).ToList();
+            var oldCells = GetShapeCells(shape).ToList();
             shape.Scale = Math.Max(0.05, scale);
             ClampToGrid(shape, shape.X, shape.Y);
-            var newCells = ShapeCells(shape);
+            InvalidateCache(id);
+            var newCells = GetShapeCells(shape);
 
             RecomposeCells(oldCells.Union(newCells));
         }
@@ -111,14 +120,33 @@ namespace Liekinheitin.CreativeTool.Domain
             var shape = Find(id);
             if (shape is null) return;
             shape.Color = color;
-            RecomposeCells(ShapeCells(shape));
+            // Géométrie inchangée : pas besoin d'invalider le cache, juste recomposer.
+            RecomposeCells(GetShapeCells(shape));
+        }
+
+        public void ApplyShapeState(Guid id, int x, int y, int baseWidth, int baseHeight, double scale, Color color)
+        {
+            var shape = Find(id);
+            if (shape is null) return;
+
+            var oldCells = GetShapeCells(shape).ToList();
+
+            shape.BaseWidth = Math.Max(1, baseWidth);
+            shape.BaseHeight = Math.Max(1, baseHeight);
+            shape.Scale = Math.Max(0.05, scale);
+            shape.Color = color;
+            ClampToGrid(shape, x, y);
+            InvalidateCache(id);
+
+            var newCells = GetShapeCells(shape);
+            RecomposeCells(oldCells.Union(newCells));
         }
 
         public PlacedShape? HitTest(int col, int row)
         {
             for (int i = _shapes.Count - 1; i >= 0; i--)
             {
-                if (ShapeCells(_shapes[i]).Any(c => c.Col == col && c.Row == row))
+                if (GetShapeCells(_shapes[i]).Contains((col, row)))
                     return _shapes[i];
             }
             return null;
@@ -126,8 +154,20 @@ namespace Liekinheitin.CreativeTool.Domain
 
         private PlacedShape? Find(Guid id) => _shapes.FirstOrDefault(s => s.Id == id);
 
-        private static IEnumerable<(int Col, int Row)> ShapeCells(PlacedShape s) =>
-            ShapeRasterizer.Rasterize(s.Type, s.X, s.Y, s.ActualWidth, s.ActualHeight);
+        /// <summary>Renvoie la géométrie rasterisée de la forme, depuis le cache si disponible,
+        /// sinon la calcule et la met en cache pour les appels suivants.</summary>
+        private HashSet<(int Col, int Row)> GetShapeCells(PlacedShape shape)
+        {
+            if (_shapeCellCache.TryGetValue(shape.Id, out var cached))
+                return cached;
+
+            var cells = new HashSet<(int Col, int Row)>(
+                ShapeRasterizer.Rasterize(shape.Type, shape.X, shape.Y, shape.ActualWidth, shape.ActualHeight));
+            _shapeCellCache[shape.Id] = cells;
+            return cells;
+        }
+
+        private void InvalidateCache(Guid id) => _shapeCellCache.Remove(id);
 
         private void ClampToGrid(PlacedShape shape, int desiredX, int desiredY)
         {
@@ -143,9 +183,8 @@ namespace Liekinheitin.CreativeTool.Domain
             shape.Y = Math.Clamp(desiredY, 0, _layout.Rows - h);
         }
 
-        /// <summary>Recalcule uniquement les cases indiquées (union des zones avant/après un
-        /// changement), en tenant compte de toutes les formes — pas seulement celle qui a
-        /// bougé, au cas où une autre forme est révélée en dessous.</summary>
+        /// <summary>Recalcule uniquement les cases indiquées, en utilisant la géométrie en
+        /// cache de chaque forme plutôt que de la re-rasteriser à chaque appel.</summary>
         private void RecomposeCells(IEnumerable<(int Col, int Row)> cells)
         {
             foreach (var (col, row) in cells.Distinct())
@@ -153,11 +192,12 @@ namespace Liekinheitin.CreativeTool.Domain
                 if (!_layout.HasLed(col, row)) continue;
 
                 Color final = _freehand.GetPixel(col, row);
+
                 foreach (var shape in _shapes)
                 {
                     if (col >= shape.X && col < shape.X + shape.ActualWidth &&
                         row >= shape.Y && row < shape.Y + shape.ActualHeight &&
-                        ShapeCells(shape).Any(c => c.Col == col && c.Row == row))
+                        GetShapeCells(shape).Contains((col, row)))
                     {
                         final = shape.Color;
                     }

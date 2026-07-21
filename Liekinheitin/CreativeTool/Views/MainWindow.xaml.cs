@@ -18,7 +18,9 @@ namespace Liekinheitin.CreativeTool
                 GridView.Initialize(vm.Layout, vm.Scene, vm.Brush, () => vm.ColorPicker.CurrentColor);
 
                 GridView.SelectionChanged += vm.ShapeInspector.Load;
-                vm.ShapeInspector.ShapeModified += () => GridView.RefreshFromScene();
+                GridView.SelectionChanged += TimelineViewControl.SetSelectedShape;
+                vm.ShapeInspector.ShapeModified += () => GridView.RefreshDirtyFromScene();
+                vm.TimelinePlayer.Ticked += () => GridView.RefreshDirtyFromScene();
             }
 
             ColumnList.ColumnSelected += OnColumnSelected;
@@ -29,7 +31,7 @@ namespace Liekinheitin.CreativeTool
             if (DataContext is ViewModels.MainViewModel vm)
             {
                 vm.FillColumn(col);
-                GridView.RefreshFromScene();
+                GridView.RefreshDirtyFromScene();
             }
         }
     }

@@ -1,15 +1,11 @@
-﻿using Liekinheitin.CreativeTool.Domain;
+﻿using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using Liekinheitin.CreativeTool.Domain;
 
 namespace Liekinheitin.CreativeTool.Infrastructure
 {
-    /// <summary>
-    /// Dessine PixelCanvas dans un WriteableBitmap, une case grille = un pixel bitmap
-    /// (le scaling visuel se fait via RenderOptions.BitmapScalingMode=NearestNeighbor
-    /// sur l'Image XAML, pas ici).
-    /// </summary>
     public sealed class PixelGridRenderer
     {
         private readonly WallLayout _layout;
@@ -18,30 +14,60 @@ namespace Liekinheitin.CreativeTool.Infrastructure
         public PixelGridRenderer(WallLayout layout)
         {
             _layout = layout;
-            // Row 0 = bas du mur, mais WriteableBitmap a l'origine en haut :
-            // on inverse verticalement à l'écriture (voir RowToBitmapY).
             Bitmap = new WriteableBitmap(layout.Columns, layout.Rows, 96, 96, PixelFormats.Bgra32, null);
         }
 
         private int RowToBitmapY(int row) => _layout.Rows - 1 - row;
 
-        public void DrawPixel(int col, int row, Color color)
-        {
-            int y = RowToBitmapY(row);
-            var rect = new Int32Rect(col, y, 1, 1);
-            byte[] pixel = { color.B, color.G, color.R, color.A };
-            Bitmap.WritePixels(rect, pixel, 4, 0);
-        }
-
-        /// <summary>Redessine tout (ouverture, chargement d'une frame d'animation, etc.)</summary>
+        /// <summary>Redessine tout (ouverture, test orientation) — un seul verrouillage pour
+        /// les 16 384 cases, malgré le volume.</summary>
         public void DrawAll(PixelCanvas canvas)
         {
+            var cells = new List<(int Col, int Row, Color Color)>(_layout.Columns * _layout.Rows);
             for (int c = 0; c < _layout.Columns; c++)
                 for (int r = 0; r < _layout.Rows; r++)
-                {
-                    var color = _layout.HasLed(c, r) ? canvas.GetPixel(c, r) : Colors.Black;
-                    DrawPixel(c, r, color);
-                }
+                    cells.Add((c, r, _layout.HasLed(c, r) ? canvas.GetPixel(c, r) : Colors.Black));
+
+            DrawPixels(cells);
         }
+
+        /// <summary>Redessine uniquement les cases indiquées — un seul verrouillage pour
+        /// tout le lot, quel que soit le nombre de cases.</summary>
+        public void DrawPixels(IReadOnlyCollection<(int Col, int Row, Color Color)> cells)
+        {
+            if (cells.Count == 0) return;
+
+            Bitmap.Lock();
+            try
+            {
+                IntPtr backBuffer = Bitmap.BackBuffer;
+                int stride = Bitmap.BackBufferStride;
+
+                int minX = int.MaxValue, minY = int.MaxValue, maxX = int.MinValue, maxY = int.MinValue;
+
+                foreach (var (col, row, color) in cells)
+                {
+                    int y = RowToBitmapY(row);
+                    int offset = y * stride + col * 4;
+                    int packed = color.B | (color.G << 8) | (color.R << 16) | (color.A << 24);
+                    Marshal.WriteInt32(backBuffer, offset, packed);
+
+                    if (col < minX) minX = col;
+                    if (col > maxX) maxX = col;
+                    if (y < minY) minY = y;
+                    if (y > maxY) maxY = y;
+                }
+
+                Bitmap.AddDirtyRect(new Int32Rect(minX, minY, maxX - minX + 1, maxY - minY + 1));
+            }
+            finally
+            {
+                Bitmap.Unlock();
+            }
+        }
+
+        /// <summary>Conservé pour compatibilité ponctuelle (un seul pixel) — préférer DrawPixels
+        /// pour tout ce qui touche plusieurs cases à la fois.</summary>
+        public void DrawPixel(int col, int row, Color color) => DrawPixels(new[] { (col, row, color) });
     }
 }

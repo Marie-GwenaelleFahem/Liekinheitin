@@ -9,6 +9,7 @@
             <!-- bouton Test orientation -->
             <RowDefinition Height="7*" />
             <!-- grille + sidebar -->
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="3*" />
             <!-- formes, pleine largeur -->
         </Grid.RowDefinitions>
@@ -44,6 +45,7 @@
         <views:ShapeListView x:Name="ShapeList" Grid.Row="2" Grid.ColumnSpan="1"
                                DataContext="{Binding ShapeList}"
                                Width="Auto" HorizontalAlignment="Stretch" />
+        <views:TimelineView x:Name="TimelineViewControl" Grid.Row="3" DataContext="{Binding TimelineViewModel}" Margin="0,4,0,0" />
 
         <Canvas Grid.Row="1" Grid.RowSpan="2">
             <views:ShapeInspectorView x:Name="Inspector" DataContext="{Binding ShapeInspector}"
