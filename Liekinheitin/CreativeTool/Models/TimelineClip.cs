@@ -34,6 +34,8 @@ namespace Liekinheitin.CreativeTool.Models
 
         public int MovementOffsetY { get; set; }
 
+        public double RotationDegrees { get; set; }
+
         public bool IsMotionDraft { get; set; }
 
         public List<MovementKeyframe> MovementKeyframes { get; set; } = new();

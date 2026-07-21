@@ -6,12 +6,12 @@
              mc:Ignorable="d"
              d:DesignHeight="220"
              d:DesignWidth="900">
-    <Border Background="#101010" ClipToBounds="True">
+    <Border Background="#080D15" ClipToBounds="True" CornerRadius="8" BorderBrush="#1E3548" BorderThickness="1">
         <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Canvas x:Name="TimelineCanvas"
                     MinWidth="900"
                     MinHeight="170"
-                    Background="#101010"
+                    Background="#080D15"
                     MouseLeftButtonDown="OnTimelineMouseLeftButtonDown" />
         </ScrollViewer>
     </Border>

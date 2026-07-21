@@ -16,6 +16,8 @@ namespace Liekinheitin.CreativeTool.Models
 
         public double AudioVolume { get; set; } = 1.0;
 
+        public double AudioFadeOutDuration { get; set; }
+
         public List<Track> Tracks { get; set; } = new();
 
         public List<MediaOverlayClip> MediaOverlays { get; set; } = new();

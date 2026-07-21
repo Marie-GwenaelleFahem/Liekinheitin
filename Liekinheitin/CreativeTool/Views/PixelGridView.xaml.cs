@@ -39,7 +39,7 @@ namespace Liekinheitin.CreativeTool.Views
             Clear();
         }
 
-        public event EventHandler? PixelDragStarted;
+        public event EventHandler<PixelDragStartedEventArgs>? PixelDragStarted;
 
         public event EventHandler<PixelDragDeltaEventArgs>? PixelDragDelta;
 
@@ -48,6 +48,78 @@ namespace Liekinheitin.CreativeTool.Views
         public int WallWidth { get; }
 
         public int WallHeight { get; }
+
+        public void ShowSelection(IReadOnlyCollection<int>? entityIds, bool showResizeHandles, bool showRotationHandle)
+        {
+            if (entityIds is null || entityIds.Count == 0)
+            {
+                SelectionBounds.Visibility = Visibility.Collapsed;
+                SetHandleVisibility(Visibility.Collapsed);
+                SetRotationHandleVisibility(Visibility.Collapsed);
+                return;
+            }
+
+            var minX = WallWidth;
+            var maxX = -1;
+            var minY = WallHeight;
+            var maxY = -1;
+            foreach (var entityId in entityIds)
+            {
+                var x = entityId % WallWidth;
+                var y = entityId / WallWidth;
+                if (entityId >= 0 && x >= 0 && x < WallWidth && y >= 0 && y < WallHeight)
+                {
+                    minX = Math.Min(minX, x);
+                    maxX = Math.Max(maxX, x);
+                    minY = Math.Min(minY, y);
+                    maxY = Math.Max(maxY, y);
+                }
+            }
+
+            if (maxX < minX || maxY < minY)
+            {
+                SelectionBounds.Visibility = Visibility.Collapsed;
+                SetHandleVisibility(Visibility.Collapsed);
+                SetRotationHandleVisibility(Visibility.Collapsed);
+                return;
+            }
+
+            var scaleX = Math.Max(1, PreviewImage.ActualWidth) / WallWidth;
+            var scaleY = Math.Max(1, PreviewImage.ActualHeight) / WallHeight;
+            var left = minX * scaleX;
+            var top = minY * scaleY;
+            var right = (maxX + 1) * scaleX;
+            var bottom = (maxY + 1) * scaleY;
+
+            Canvas.SetLeft(SelectionBounds, left);
+            Canvas.SetTop(SelectionBounds, top);
+            SelectionBounds.Width = Math.Max(1, right - left);
+            SelectionBounds.Height = Math.Max(1, bottom - top);
+            SelectionBounds.Visibility = Visibility.Visible;
+
+            var handleVisibility = showResizeHandles ? Visibility.Visible : Visibility.Collapsed;
+            SetHandleVisibility(handleVisibility);
+            if (showResizeHandles)
+            {
+                PositionHandle(TopLeftHandle, left, top);
+                PositionHandle(TopRightHandle, right, top);
+                PositionHandle(BottomLeftHandle, left, bottom);
+                PositionHandle(BottomRightHandle, right, bottom);
+            }
+
+            var rotationVisibility = showRotationHandle ? Visibility.Visible : Visibility.Collapsed;
+            SetRotationHandleVisibility(rotationVisibility);
+            if (showRotationHandle)
+            {
+                var centerX = (left + right) / 2;
+                var handleY = top >= 24 ? top - 20 : top + 20;
+                RotationStem.X1 = centerX;
+                RotationStem.Y1 = top;
+                RotationStem.X2 = centerX;
+                RotationStem.Y2 = handleY;
+                PositionHandle(RotationHandle, centerX, handleY);
+            }
+        }
 
         public void Clear()
         {
@@ -150,7 +222,7 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 _lastDragPixel = pixel;
                 PreviewImage.CaptureMouse();
-                PixelDragStarted?.Invoke(this, EventArgs.Empty);
+                PixelDragStarted?.Invoke(this, new PixelDragStartedEventArgs((int)pixel.X, (int)pixel.Y));
                 e.Handled = true;
             }
         }
@@ -262,6 +334,39 @@ namespace Liekinheitin.CreativeTool.Views
                 WallWidth * BytesPerPixel,
                 0);
         }
+
+        private void SetHandleVisibility(Visibility visibility)
+        {
+            TopLeftHandle.Visibility = visibility;
+            TopRightHandle.Visibility = visibility;
+            BottomLeftHandle.Visibility = visibility;
+            BottomRightHandle.Visibility = visibility;
+        }
+
+        private void SetRotationHandleVisibility(Visibility visibility)
+        {
+            RotationStem.Visibility = visibility;
+            RotationHandle.Visibility = visibility;
+        }
+
+        private static void PositionHandle(FrameworkElement handle, double x, double y)
+        {
+            Canvas.SetLeft(handle, x - (handle.Width / 2));
+            Canvas.SetTop(handle, y - (handle.Height / 2));
+        }
+    }
+
+    public sealed class PixelDragStartedEventArgs : EventArgs
+    {
+        public PixelDragStartedEventArgs(int pixelX, int pixelY)
+        {
+            PixelX = pixelX;
+            PixelY = pixelY;
+        }
+
+        public int PixelX { get; }
+
+        public int PixelY { get; }
     }
 
     public sealed class PixelDragDeltaEventArgs : EventArgs

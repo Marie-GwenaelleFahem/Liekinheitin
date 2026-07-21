@@ -6,11 +6,12 @@
         xmlns:local="clr-namespace:Liekinheitin.CreativeTool.Views"
         mc:Ignorable="d"
         Title="Liekinheitin Creative Tool"
-        Height="800"
-        Width="1280"
-        MinHeight="640"
-        MinWidth="980"
-        Background="#1F1F1F">
+        Height="940"
+        Width="1500"
+        MinHeight="720"
+        MinWidth="1180"
+        FontFamily="Segoe UI"
+        Background="#070B12">
     <Window.Resources>
         <Style x:Key="PropertyLabelStyle" TargetType="TextBlock">
             <Setter Property="Foreground" Value="#CFCFCF" />
@@ -44,9 +45,95 @@
                 </Setter.Value>
             </Setter>
         </Style>
+        <Style TargetType="Button" BasedOn="{StaticResource ShapeButtonStyle}">
+            <Setter Property="MinHeight" Value="28" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="Foreground" Value="#F3F7FF" />
+            <Setter Property="Background" Value="#111A28" />
+            <Setter Property="BorderBrush" Value="#2B3D55" />
+            <Setter Property="CaretBrush" Value="#62E6FF" />
+            <Setter Property="SelectionBrush" Value="#376D80" />
+            <Setter Property="Padding" Value="8,5" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#A8B7CA" />
+                    <Setter Property="Background" Value="#202A38" />
+                    <Setter Property="BorderBrush" Value="#344257" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="ComboBox">
+            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Background" Value="#0E1826" />
+            <Setter Property="BorderBrush" Value="#4B607A" />
+            <Setter Property="Padding" Value="7,4" />
+            <Style.Triggers>
+                <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                    <Setter Property="BorderBrush" Value="#62E6FF" />
+                    <Setter Property="Background" Value="#13263A" />
+                </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#A8B7CA" />
+                    <Setter Property="Background" Value="#202A38" />
+                    <Setter Property="BorderBrush" Value="#344257" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="ComboBoxItem">
+            <Setter Property="Foreground" Value="#F7FAFF" />
+            <Setter Property="Background" Value="#101B2A" />
+            <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+            <Setter Property="Padding" Value="10,7" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBoxItem">
+                        <Border x:Name="OptionBackground"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="#263A52"
+                                BorderThickness="0,0,0,1"
+                                Padding="{TemplateBinding Padding}">
+                            <ContentPresenter VerticalAlignment="Center"
+                                              HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsHighlighted" Value="True">
+                                <Setter TargetName="OptionBackground" Property="Background" Value="#24516A" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="OptionBackground" Property="Background" Value="#1D6681" />
+                                <Setter Property="Foreground" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="OptionBackground" Property="Background" Value="#202A38" />
+                                <Setter Property="Foreground" Value="#8D9BAE" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style TargetType="MenuItem">
+            <Setter Property="Foreground" Value="#F4F7FC" />
+            <Setter Property="Background" Value="#111A28" />
+        </Style>
+        <Style TargetType="TabControl">
+            <Setter Property="Background" Value="#0D1420" />
+            <Setter Property="BorderBrush" Value="#25364C" />
+        </Style>
+        <Style TargetType="TabItem">
+            <Setter Property="Foreground" Value="#AAB7C9" />
+            <Setter Property="Background" Value="#111A28" />
+            <Setter Property="Padding" Value="12,7" />
+        </Style>
+        <Style TargetType="Slider">
+            <Setter Property="Foreground" Value="#62E6FF" />
+        </Style>
     </Window.Resources>
     <DockPanel LastChildFill="True">
-        <Menu DockPanel.Dock="Top" Background="#2B2B2B" Foreground="#F4F4F4">
+        <Menu DockPanel.Dock="Top" Height="32" Background="#0A101A" Foreground="#DCE7F6">
             <MenuItem Header="_Fichier" Foreground="#F4F4F4" Background="#2B2B2B">
                 <MenuItem Header="_Nouveau projet" Click="OnNewProjectClick" />
                 <MenuItem Header="_Ouvrir..." Click="OnOpenProjectClick" />
@@ -69,12 +156,14 @@
             </MenuItem>
         </Menu>
 
-        <StatusBar DockPanel.Dock="Bottom" Background="#2B2B2B" Foreground="#DADADA">
+        <StatusBar DockPanel.Dock="Bottom" Background="#0A101A" Foreground="#92A4BC" BorderBrush="#1D3044" BorderThickness="0,1,0,0">
             <StatusBarItem x:Name="PlaybackStatusItem" Content="Pret" />
             <Separator />
             <StatusBarItem x:Name="ProjectStatusItem" Content="Projet non sauvegarde" />
             <Separator />
             <StatusBarItem x:Name="WallStatusItem" Content="128 x 128" />
+            <Separator />
+            <StatusBarItem x:Name="ActionFeedbackItem" Foreground="#62E6FF" Content="STUDIO PRÊT" />
         </StatusBar>
 
         <Grid>
@@ -82,19 +171,19 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="*" />
                 <RowDefinition Height="Auto" />
-                <RowDefinition Height="260" MinHeight="140" />
+                <RowDefinition Height="330" MinHeight="190" />
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="320" />
+                <ColumnDefinition Width="390" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Row="0"
                     Grid.ColumnSpan="2"
-                    BorderBrush="#3A3A3A"
+                    BorderBrush="#1D3F52"
                     BorderThickness="0,0,0,1"
-                    Background="#252525"
-                    Padding="12,8">
+                    Background="#0D1522"
+                    Padding="14,10">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="Auto" />
@@ -103,9 +192,13 @@
                     </Grid.ColumnDefinitions>
 
                     <StackPanel Orientation="Horizontal">
-                        <Button x:Name="PlayButton" Width="72" Margin="0,0,8,0" Content="Play" />
-                        <Button x:Name="PauseButton" Width="72" Margin="0,0,8,0" Content="Pause" />
-                        <Button x:Name="StopButton" Width="72" Content="Stop" />
+                        <StackPanel Margin="0,0,18,0">
+                            <TextBlock Foreground="#F3F7FF" FontSize="15" FontWeight="Bold" Text="LIEKINHEITIN // STUDIO" />
+                            <TextBlock Foreground="#5B728E" FontSize="9" Text="LIVE LED PERFORMANCE CONSOLE" />
+                        </StackPanel>
+                        <Button x:Name="PlayButton" Width="62" Margin="0,0,6,0" Background="#123C3B" BorderBrush="#22B8A7" Content="▶ PLAY" />
+                        <Button x:Name="PauseButton" Width="64" Margin="0,0,6,0" Background="#3A3018" BorderBrush="#D09B2E" Content="Ⅱ PAUSE" />
+                        <Button x:Name="StopButton" Width="58" Background="#3D1C2A" BorderBrush="#D45079" Content="■ STOP" />
                     </StackPanel>
 
                     <Slider x:Name="TimeSlider" Grid.Column="1"
@@ -126,19 +219,34 @@
             <Border Grid.Row="1"
                     Grid.Column="0"
                     Margin="12"
-                    BorderBrush="#3A3A3A"
+                    BorderBrush="#23465A"
                     BorderThickness="1"
-                    Background="#151515">
+                    Background="#080E17"
+                    CornerRadius="10">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <TextBlock Margin="12,10"
-                               Foreground="#DADADA"
-                               FontWeight="SemiBold"
-                               Text="Preview LED" />
+                    <Grid Margin="14,10">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                        <StackPanel>
+                            <TextBlock Foreground="#F3F7FF" FontSize="15" FontWeight="Bold" Text="LED STAGE // 128 × 128" />
+                            <TextBlock Foreground="#60758E" FontSize="10" Text="TRANSFORM · MOVE · SCALE · ROTATE" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                            <Button Height="26" Margin="0,0,6,0" Padding="9,0" Tag="Position" Click="OnPreviewToolClick" Content="↔ MOVE" />
+                            <Button Height="26" Margin="0,0,6,0" Padding="9,0" Tag="Resize" Click="OnPreviewToolClick" Content="⤢ SCALE" />
+                            <Button Height="26" Margin="0,0,10,0" Padding="9,0" Tag="Rotate" Click="OnPreviewToolClick" Content="⟳ ROTATE" />
+                            <Border Margin="0,0,8,0" Padding="9,4" CornerRadius="10" Background="#172B35" BorderBrush="#2C6B7E" BorderThickness="1">
+                                <TextBlock Foreground="#62E6FF" FontSize="10" Text="PREVIEW LIVE" />
+                            </Border>
+                            <Border Padding="9,4" CornerRadius="10" Background="#251B35" BorderBrush="#644588" BorderThickness="1">
+                                <TextBlock Foreground="#D59CFF" FontSize="10" Text="PIXEL PERFECT" />
+                            </Border>
+                        </StackPanel>
+                    </Grid>
 
                     <Grid Grid.Row="1" Margin="12" ClipToBounds="True">
                         <local:PixelGridView x:Name="LedPreview" />
@@ -152,14 +260,14 @@
             <Border Grid.Row="1"
                     Grid.RowSpan="3"
                     Grid.Column="1"
-                    BorderBrush="#3A3A3A"
+                    BorderBrush="#22384E"
                     BorderThickness="1,0,0,0"
-                    Background="#252525"
+                    Background="#0D1420"
                     Padding="16">
-                <TabControl Background="#252525"
-                            BorderBrush="#3A3A3A"
+                <TabControl Background="#0D1420"
+                            BorderBrush="#25364C"
                             Foreground="#F4F4F4">
-                    <TabItem Header="Clip">
+                    <TabItem Header="MIXER">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       Padding="0,12,0,0">
                             <StackPanel>
@@ -193,6 +301,13 @@
                                     <ComboBoxItem Content="Couleur fixe" Tag="SolidColor" />
                                     <ComboBoxItem Content="Fade" Tag="Fade" />
                                     <ComboBoxItem Content="Wave" Tag="Wave" />
+                                    <ComboBoxItem Content="Pulse" Tag="Pulse" />
+                                    <ComboBoxItem Content="Stroboscope" Tag="Strobe" />
+                                    <ComboBoxItem Content="Chaser DJ" Tag="Chase" />
+                                    <ComboBoxItem Content="Respiration" Tag="Breath" />
+                                    <ComboBoxItem Content="Étincelles" Tag="Sparkle" />
+                                    <ComboBoxItem Content="Égaliseur" Tag="Equalizer" />
+                                    <ComboBoxItem Content="Ondes concentriques" Tag="Ripple" />
                                 </ComboBox>
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Cible" />
@@ -225,14 +340,14 @@
                                 <Slider x:Name="IntensitySlider" Margin="0,4,0,12" Minimum="0" Maximum="1" Value="1" />
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Vitesse" />
-                                <Slider x:Name="SpeedSlider" Margin="0,4,0,20" Minimum="0" Maximum="4" Value="1" />
+                                <Slider x:Name="SpeedSlider" Margin="0,4,0,20" Minimum="0" Maximum="10" Value="1" />
 
                                 <Button x:Name="ApplyPropertiesButton" Height="34" Content="Appliquer les proprietes" />
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
 
-                    <TabItem x:Name="ShapesTab" Header="Formes">
+                    <TabItem x:Name="ShapesTab" Header="FORMES ORGANIQUES">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       Padding="0,12,0,0">
                             <StackPanel>
@@ -252,7 +367,15 @@
                                           SelectedIndex="0">
                                     <ComboBoxItem Content="Déplacer le départ" Tag="Position" />
                                     <ComboBoxItem Content="Déplacer l'arrivée" Tag="Movement" />
+                                    <ComboBoxItem Content="Redimensionner directement" Tag="Resize" />
+                                    <ComboBoxItem Content="Tourner directement" Tag="Rotate" />
                                 </ComboBox>
+
+                                <Grid Margin="0,0,0,12">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Rotation" />
+                                    <TextBlock x:Name="RotationAngleTextBlock" Grid.Column="1" Foreground="#62E6FF" FontFamily="Consolas" Text="0°" />
+                                </Grid>
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Trajet" />
                                 <ComboBox x:Name="MovementEffectComboBox"
@@ -308,6 +431,53 @@
                                            Margin="0,0,0,12"
                                            Text="Créer une barre de forme" />
 
+                                <Border Margin="0,0,0,14" Padding="12" CornerRadius="8"
+                                        Background="#152235" BorderBrush="#36708B" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Foreground="#E7F5FF" FontWeight="SemiBold" Text="ATELIER — Créer ma forme" />
+                                        <TextBlock Margin="0,3,0,10" Foreground="#8195AE" FontSize="10" TextWrapping="Wrap"
+                                                   Text="Choisissez chaque caractéristique : la forme obtenue est construite à partir de vos réglages." />
+
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Famille" />
+                                        <ComboBox x:Name="CustomShapeTypeComboBox" Margin="0,4,0,8" SelectedIndex="0">
+                                            <ComboBoxItem Content="Ondulations concentriques" Tag="Ripple" />
+                                            <ComboBoxItem Content="Tracé cardiaque" Tag="Heartbeat" />
+                                        </ComboBox>
+
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Complexité" />
+                                        <ComboBox x:Name="CustomShapeDensityComboBox" Margin="0,4,0,8" SelectedIndex="1">
+                                            <ComboBoxItem Content="Simple — 3 éléments" Tag="3" />
+                                            <ComboBoxItem Content="Équilibrée — 4 éléments" Tag="4" />
+                                            <ComboBoxItem Content="Riche — 5 éléments" Tag="5" />
+                                            <ComboBoxItem Content="Très riche — 6 éléments" Tag="6" />
+                                        </ComboBox>
+
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Épaisseur du trait" />
+                                        <ComboBox x:Name="CustomShapeThicknessComboBox" Margin="0,4,0,8" SelectedIndex="1">
+                                            <ComboBoxItem Content="Fine" Tag="1.4" />
+                                            <ComboBoxItem Content="Moyenne" Tag="2.4" />
+                                            <ComboBoxItem Content="Épaisse" Tag="4" />
+                                        </ComboBox>
+
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Aspect dessiné à la main" />
+                                        <ComboBox x:Name="CustomShapeIrregularityComboBox" Margin="0,4,0,8" SelectedIndex="1">
+                                            <ComboBoxItem Content="Propre" Tag="0.3" />
+                                            <ComboBoxItem Content="Naturel" Tag="1.2" />
+                                            <ComboBoxItem Content="Très organique" Tag="2.3" />
+                                        </ComboBox>
+
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Variation du dessin" />
+                                        <ComboBox x:Name="CustomShapeVariationComboBox" Margin="0,4,0,12" SelectedIndex="0">
+                                            <ComboBoxItem Content="Variation A" Tag="0.35" />
+                                            <ComboBoxItem Content="Variation B" Tag="1.15" />
+                                            <ComboBoxItem Content="Variation C" Tag="2.25" />
+                                            <ComboBoxItem Content="Variation D" Tag="3.4" />
+                                        </ComboBox>
+
+                                        <Button Height="34" Click="OnCreateCustomShapeClick" Content="CRÉER AVEC MES CHOIX" />
+                                    </StackPanel>
+                                </Border>
+
                                 <Border Margin="0,0,0,14" Padding="10" CornerRadius="8"
                                         Background="#202631" BorderBrush="#46536A" BorderThickness="1">
                                     <StackPanel>
@@ -325,24 +495,54 @@
                                     </StackPanel>
                                 </Border>
 
-                                <ItemsControl x:Name="ShapesItemsControl">
-                                    <ItemsControl.ItemTemplate>
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="36 formes dessinées à la main" />
+                                <TextBox x:Name="ShapeSearchTextBox"
+                                         Margin="0,6,0,8"
+                                         Padding="10,7"
+                                         ToolTip="Rechercher une forme"
+                                         TextChanged="OnShapeFilterChanged" />
+                                <ComboBox x:Name="ShapeCategoryComboBox"
+                                          Margin="0,0,0,12"
+                                          SelectedIndex="0"
+                                          SelectionChanged="OnShapeFilterChanged">
+                                    <ComboBoxItem Content="Toutes les catégories" Tag="All" />
+                                    <ComboBoxItem Content="Traits au pinceau" Tag="Traits au pinceau" />
+                                    <ComboBoxItem Content="Halos &amp; anneaux" Tag="Halos &amp; anneaux" />
+                                    <ComboBoxItem Content="Gouttes" Tag="Gouttes" />
+                                    <ComboBoxItem Content="Rubans &amp; ondes" Tag="Rubans &amp; ondes" />
+                                    <ComboBoxItem Content="Spirales" Tag="Spirales" />
+                                    <ComboBoxItem Content="Formes organiques" Tag="Formes organiques" />
+                                </ComboBox>
+
+                                <ListBox x:Name="ShapesItemsControl"
+                                         Height="390"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         VirtualizingStackPanel.IsVirtualizing="True"
+                                         VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                    <ListBox.ItemTemplate>
                                         <DataTemplate>
                                             <Button Style="{StaticResource ShapeButtonStyle}"
                                                     Margin="0,0,0,8"
-                                                    Height="32"
+                                                    Height="42"
                                                     HorizontalContentAlignment="Left"
-                                                    Content="{Binding DisplayName}"
                                                     Tag="{Binding}"
-                                                    Click="OnShapeButtonClick" />
+                                                    Click="OnShapeButtonClick">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" />
+                                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#72839E" FontSize="10" Text="{Binding Category}" />
+                                                </Grid>
+                                            </Button>
                                         </DataTemplate>
-                                    </ItemsControl.ItemTemplate>
-                                </ItemsControl>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
                             </StackPanel>
                         </ScrollViewer>
                     </TabItem>
 
-                    <TabItem Header="Musique">
+                    <TabItem Header="AUDIO">
                         <StackPanel Margin="0,12,0,0">
                             <TextBlock Margin="0,0,0,16"
                                        Foreground="#F4F4F4"
@@ -383,11 +583,31 @@
                                     Maximum="1"
                                     Value="1"
                                     TickFrequency="0.05"
-                                    IsSnapToTickEnabled="False" />
+                                    IsSnapToTickEnabled="False"
+                                    Margin="0,0,0,18" />
+
+                            <Grid Margin="0,0,0,4">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Fondu de fin" />
+                                <TextBlock x:Name="AudioFadeOutTextBlock"
+                                           Grid.Column="1"
+                                           Foreground="#DADADA"
+                                           FontFamily="Consolas"
+                                           Text="Aucun" />
+                            </Grid>
+                            <Slider x:Name="AudioFadeOutSlider"
+                                    Minimum="0"
+                                    Maximum="10"
+                                    Value="0"
+                                    TickFrequency="0.5"
+                                    IsSnapToTickEnabled="True" />
                         </StackPanel>
                     </TabItem>
 
-                    <TabItem Header="Médias">
+                    <TabItem Header="MEDIA">
                         <StackPanel Margin="0,12,0,0">
                             <TextBlock Margin="0,0,0,16" Foreground="#F4F4F4" FontSize="16" FontWeight="SemiBold"
                                        Text="Image, GIF ou vidéo" />
@@ -422,59 +642,44 @@
             <Border Grid.Row="3"
                     Grid.Column="0"
                     Margin="12,0,12,12"
-                    BorderBrush="#3A3A3A"
+                    BorderBrush="#213E52"
                     BorderThickness="1"
-                    Background="#181818">
+                    Background="#090F18"
+                    CornerRadius="10">
                 <Grid>
                     <Grid.RowDefinitions>
                         <RowDefinition Height="Auto" />
                         <RowDefinition Height="*" />
                     </Grid.RowDefinitions>
 
-                    <Grid Margin="12,8,12,6">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="*" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="8" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="8" />
-                            <ColumnDefinition Width="Auto" />
-                            <ColumnDefinition Width="8" />
-                            <ColumnDefinition Width="Auto" />
-                        </Grid.ColumnDefinitions>
-                        <TextBlock VerticalAlignment="Center"
-                                   Foreground="#DADADA"
-                                   FontWeight="SemiBold"
-                                   Text="Timeline" />
-                        <StackPanel Grid.Column="1"
-                                    Orientation="Horizontal"
-                                    VerticalAlignment="Center">
-                            <TextBlock VerticalAlignment="Center"
-                                       Foreground="#BEBEBE"
-                                       FontSize="12"
-                                       Text="Duree" />
-                            <TextBox x:Name="ProjectDurationTextBox"
-                                     Width="56"
-                                     Height="24"
-                                     Margin="8,0,0,0"
-                                     Text="30" />
-                        </StackPanel>
-                        <Button x:Name="ApplyDurationButton"
-                                Grid.Column="3"
-                                MinWidth="72"
-                                Height="26"
-                                Content="Appliquer" />
-                        <Button x:Name="ExtendTimelineButton"
-                                Grid.Column="5"
-                                MinWidth="52"
-                                Height="26"
-                                Content="+10s" />
-                        <Button x:Name="AddShapeLayerButton"
-                                Grid.Column="7"
-                                MinWidth="104"
-                                Height="26"
-                                Content="+ Forme" />
-                    </Grid>
+                    <StackPanel Margin="12,8,12,6">
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                            <StackPanel Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Foreground="#F3F7FF" FontSize="15" FontWeight="Bold" Text="MULTITRACK SESSION" />
+                                <Border Margin="10,0,0,0" Padding="8,3" CornerRadius="10" Background="#172B35" BorderBrush="#2C6B7E" BorderThickness="1">
+                                    <TextBlock Foreground="#62E6FF" FontSize="10" Text="LIVE EDIT" />
+                                </Border>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                <TextBlock VerticalAlignment="Center" Foreground="#8D9AAF" FontSize="11" Text="DURÉE" />
+                                <TextBox x:Name="ProjectDurationTextBox" Width="58" Height="28" Margin="8,0" Text="30" />
+                                <Button x:Name="ApplyDurationButton" MinWidth="70" Height="28" Content="APPLIQUER" />
+                                <Button x:Name="ExtendTimelineButton" MinWidth="52" Height="28" Margin="6,0,0,0" Content="+10s" />
+                            </StackPanel>
+                        </Grid>
+
+                        <WrapPanel>
+                            <TextBox x:Name="TrackNameTextBox" Width="150" Height="30" Margin="0,0,6,6" Padding="8,4" Text="Nouvelle piste" />
+                            <Button x:Name="AddTrackButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="＋ PISTE" />
+                            <Button x:Name="RenameTrackButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="RENOMMER" />
+                            <Button x:Name="DeleteTrackButton" Height="30" Margin="0,0,14,6" Padding="12,0" Content="SUPPRIMER" />
+                            <Button x:Name="AddShapeLayerButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="＋ FORME" />
+                            <Button x:Name="DuplicateClipToolbarButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="DUPLIQUER" />
+                            <Button x:Name="InsertBeforeButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="＋ AVANT" />
+                            <Button x:Name="InsertAfterButton" Height="30" Margin="0,0,6,6" Padding="12,0" Content="＋ APRÈS" />
+                        </WrapPanel>
+                    </StackPanel>
 
                     <local:TimelineView x:Name="TimelineControl" Grid.Row="1" Margin="12" />
                 </Grid>

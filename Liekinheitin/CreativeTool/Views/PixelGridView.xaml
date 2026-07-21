@@ -11,12 +11,26 @@
                 VerticalAlignment="Center"
                 BorderBrush="#303030"
                 BorderThickness="1">
-            <Image x:Name="PreviewImage"
-                   Width="512"
-                   Height="512"
-                   Stretch="Fill"
-                   RenderOptions.BitmapScalingMode="NearestNeighbor"
-                   SnapsToDevicePixels="True" />
+            <Grid Width="512" Height="512">
+                <Image x:Name="PreviewImage"
+                       Stretch="Fill"
+                       RenderOptions.BitmapScalingMode="NearestNeighbor"
+                       SnapsToDevicePixels="True" />
+
+                <Canvas x:Name="SelectionOverlay" IsHitTestVisible="False">
+                    <Rectangle x:Name="SelectionBounds"
+                               Visibility="Collapsed"
+                               Stroke="#FFDA5A"
+                               StrokeThickness="2"
+                               StrokeDashArray="4,2" />
+                    <Rectangle x:Name="TopLeftHandle" Width="10" Height="10" Fill="#FFFFFF" Stroke="#FF8A32" StrokeThickness="2" Visibility="Collapsed" />
+                    <Rectangle x:Name="TopRightHandle" Width="10" Height="10" Fill="#FFFFFF" Stroke="#FF8A32" StrokeThickness="2" Visibility="Collapsed" />
+                    <Rectangle x:Name="BottomLeftHandle" Width="10" Height="10" Fill="#FFFFFF" Stroke="#FF8A32" StrokeThickness="2" Visibility="Collapsed" />
+                    <Rectangle x:Name="BottomRightHandle" Width="10" Height="10" Fill="#FFFFFF" Stroke="#FF8A32" StrokeThickness="2" Visibility="Collapsed" />
+                    <Line x:Name="RotationStem" Stroke="#62E6FF" StrokeThickness="2" Visibility="Collapsed" />
+                    <Ellipse x:Name="RotationHandle" Width="12" Height="12" Fill="#111827" Stroke="#62E6FF" StrokeThickness="2" Visibility="Collapsed" />
+                </Canvas>
+            </Grid>
         </Border>
     </Grid>
 </UserControl>

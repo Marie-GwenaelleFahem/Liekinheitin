@@ -9,5 +9,7 @@ public interface IShape
 
     string DisplayName { get; }
 
+    string Category { get; }
+
     IEnumerable<int> GetEntityIds();
 }

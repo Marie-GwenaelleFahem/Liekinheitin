@@ -4,6 +4,13 @@ namespace Liekinheitin.CreativeTool.Models
     {
         SolidColor,
         Fade,
-        Wave
+        Wave,
+        Pulse,
+        Strobe,
+        Chase,
+        Breath,
+        Sparkle,
+        Equalizer,
+        Ripple
     }
 }

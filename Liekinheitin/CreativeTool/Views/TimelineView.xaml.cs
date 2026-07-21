@@ -15,18 +15,19 @@ namespace Liekinheitin.CreativeTool.Views
     /// </summary>
     public partial class TimelineView : UserControl
     {
-        private const double LeftGutter = 110;
-        private const double TopRulerHeight = 28;
-        private const double TrackHeight = 44;
-        private const double TrackGap = 8;
-        private const double ClipHeight = 34;
+        private const double LeftGutter = 140;
+        private const double TopRulerHeight = 32;
+        private const double TrackHeight = 50;
+        private const double TrackGap = 6;
+        private const double ClipHeight = 38;
         private const double MinClipWidth = 34;
         private const double ResizeHandleWidth = 8;
         private const double MinClipDuration = 0.05;
-        private const double PixelsPerSecond = 28;
+        private const double PixelsPerSecond = 36;
 
         private ShowProject? _project;
         private TimelineClip? _selectedClip;
+        private Track? _selectedTrack;
         private double _playheadTime;
         private Line? _playheadLine;
         private TimelineClip? _resizingClip;
@@ -51,6 +52,10 @@ namespace Liekinheitin.CreativeTool.Views
 
         public event EventHandler<ClipActionEventArgs>? ClipActionRequested;
 
+        public event EventHandler<Track>? TrackChanged;
+
+        public event EventHandler<Track>? TrackSelected;
+
         public void SetProject(ShowProject project)
         {
             _project = project;
@@ -66,6 +71,13 @@ namespace Liekinheitin.CreativeTool.Views
         public void SelectClip(TimelineClip? clip)
         {
             _selectedClip = clip;
+            _selectedTrack = clip is null ? _selectedTrack : _project?.Tracks.FirstOrDefault(track => track.Clips.Contains(clip));
+            Redraw();
+        }
+
+        public void SelectTrack(Track? track)
+        {
+            _selectedTrack = track;
             Redraw();
         }
 
@@ -144,13 +156,36 @@ namespace Liekinheitin.CreativeTool.Views
 
                 var label = new TextBlock
                 {
-                    Foreground = Brushes.LightGray,
+                    Foreground = track.IsMuted ? Brushes.Gray : Brushes.LightGray,
                     FontWeight = FontWeights.SemiBold,
-                    Text = track.Name
+                    Text = track.Name,
+                    Width = 62,
+                    TextTrimming = TextTrimming.CharacterEllipsis,
+                    ToolTip = track.Name,
+                    Tag = track,
+                    Cursor = Cursors.Hand
                 };
+                label.MouseLeftButtonDown += OnTrackSelected;
                 Canvas.SetLeft(label, 10);
                 Canvas.SetTop(label, y + 13);
                 TimelineCanvas.Children.Add(label);
+
+                var muteButton = new Button
+                {
+                    Width = 24,
+                    Height = 22,
+                    Padding = new Thickness(0),
+                    Content = "M",
+                    Foreground = track.IsMuted ? Brushes.White : new SolidColorBrush(Color.FromRgb(98, 230, 255)),
+                    Background = new SolidColorBrush(track.IsMuted ? Color.FromRgb(184, 56, 82) : Color.FromRgb(24, 38, 50)),
+                    BorderBrush = new SolidColorBrush(track.IsMuted ? Color.FromRgb(255, 102, 132) : Color.FromRgb(49, 91, 108)),
+                    Tag = track,
+                    ToolTip = track.IsMuted ? "Réactiver la piste" : "Couper la piste"
+                };
+                muteButton.Click += OnTrackMuteClick;
+                Canvas.SetLeft(muteButton, 62);
+                Canvas.SetTop(muteButton, y + 10);
+                TimelineCanvas.Children.Add(muteButton);
 
                 var zoomButton = new Button
                 {
@@ -170,10 +205,17 @@ namespace Liekinheitin.CreativeTool.Views
                 {
                     Width = Math.Max(0, width - LeftGutter - 16),
                     Height = trackDisplayHeight,
-                    Fill = new SolidColorBrush(Color.FromRgb(30, 30, 30)),
-                    Stroke = new SolidColorBrush(Color.FromRgb(54, 54, 54)),
+                    Fill = new SolidColorBrush(Color.FromRgb(13, 23, 35)),
+                    Stroke = new SolidColorBrush(Color.FromRgb(31, 55, 73)),
                     StrokeThickness = 1
                 };
+                if (ReferenceEquals(track, _selectedTrack))
+                {
+                    lane.Stroke = new SolidColorBrush(Color.FromRgb(98, 230, 255));
+                    lane.StrokeThickness = 2;
+                }
+                lane.Tag = track;
+                lane.MouseLeftButtonDown += OnTrackSelected;
                 Canvas.SetLeft(lane, LeftGutter);
                 Canvas.SetTop(lane, y);
                 TimelineCanvas.Children.Add(lane);
@@ -225,7 +267,34 @@ namespace Liekinheitin.CreativeTool.Views
                 Text = label,
                 TextTrimming = TextTrimming.CharacterEllipsis
             };
-            border.Child = text;
+            if (clip.IsAudio)
+            {
+                var audioContent = new Grid();
+                audioContent.Children.Add(text);
+                var waveform = new Canvas { Height = 12, Margin = new Thickness(7, 19, 7, 2), Opacity = 0.72 };
+                var barCount = Math.Max(4, Math.Min(48, (int)(width / 5)));
+                for (var index = 0; index < barCount; index++)
+                {
+                    var level = 3 + (Math.Abs(Math.Sin((index * 1.73) + clip.Duration)) * 9);
+                    var bar = new Rectangle
+                    {
+                        Width = 2,
+                        Height = level,
+                        RadiusX = 1,
+                        RadiusY = 1,
+                        Fill = new SolidColorBrush(Color.FromRgb(150, 255, 223))
+                    };
+                    Canvas.SetLeft(bar, index * 5);
+                    Canvas.SetTop(bar, (12 - level) / 2);
+                    waveform.Children.Add(bar);
+                }
+                audioContent.Children.Add(waveform);
+                border.Child = audioContent;
+            }
+            else
+            {
+                border.Child = text;
+            }
 
             Canvas.SetLeft(border, x);
             Canvas.SetTop(border, trackY + 5);
@@ -241,11 +310,29 @@ namespace Liekinheitin.CreativeTool.Views
             e.Handled = true;
         }
 
+        private void OnTrackMuteClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: Track track }) return;
+            track.IsMuted = !track.IsMuted;
+            TrackChanged?.Invoke(this, track);
+            Redraw();
+            e.Handled = true;
+        }
+
+        private void OnTrackSelected(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: Track track }) return;
+            _selectedTrack = track;
+            TrackSelected?.Invoke(this, track);
+            Redraw();
+            e.Handled = true;
+        }
+
         private double GetTrackDisplayHeight(Track track)
         {
             if (!_expandedTracks.Contains(track)) return TrackHeight;
             var laneCount = AssignClipLanes(track).Values.DefaultIfEmpty(0).Max() + 1;
-            return Math.Max(TrackHeight, 10 + (laneCount * (ClipHeight + 4)));
+            return Math.Max(104, 10 + (laneCount * (ClipHeight + 4)));
         }
 
         private static Dictionary<TimelineClip, int> AssignClipLanes(Track track)
@@ -298,6 +385,8 @@ namespace Liekinheitin.CreativeTool.Views
 
             menu.Items.Add(CreateActionMenuItem("Modifier", ClipAction.Edit, clip));
             menu.Items.Add(CreateActionMenuItem("Dupliquer", ClipAction.Duplicate, clip));
+            menu.Items.Add(CreateActionMenuItem("Insérer avant", ClipAction.InsertBefore, clip));
+            menu.Items.Add(CreateActionMenuItem("Insérer après", ClipAction.InsertAfter, clip));
             menu.Items.Add(CreateActionMenuItem(clip.IsHidden ? "Afficher" : "Masquer", ClipAction.ToggleVisibility, clip));
             menu.Items.Add(new Separator());
             menu.Items.Add(CreateActionMenuItem("Supprimer", ClipAction.Delete, clip));
@@ -351,6 +440,7 @@ namespace Liekinheitin.CreativeTool.Views
             if (sender is FrameworkElement { Tag: TimelineClip clip })
             {
                 _selectedClip = clip;
+                _selectedTrack = _project?.Tracks.FirstOrDefault(track => track.Clips.Contains(clip));
                 ClipSelected?.Invoke(this, clip);
 
                 var edge = GetResizeEdge(sender, e);
@@ -511,6 +601,13 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 EffectType.Fade => Color.FromRgb(120, 82, 170),
                 EffectType.Wave => Color.FromRgb(38, 124, 170),
+                EffectType.Pulse => Color.FromRgb(203, 74, 139),
+                EffectType.Strobe => Color.FromRgb(219, 184, 54),
+                EffectType.Chase => Color.FromRgb(43, 174, 164),
+                EffectType.Breath => Color.FromRgb(86, 112, 190),
+                EffectType.Sparkle => Color.FromRgb(173, 121, 212),
+                EffectType.Equalizer => Color.FromRgb(34, 151, 104),
+                EffectType.Ripple => Color.FromRgb(56, 116, 205),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }
@@ -527,6 +624,8 @@ namespace Liekinheitin.CreativeTool.Views
     {
         Edit,
         Duplicate,
+        InsertBefore,
+        InsertAfter,
         ToggleVisibility,
         Delete
     }
