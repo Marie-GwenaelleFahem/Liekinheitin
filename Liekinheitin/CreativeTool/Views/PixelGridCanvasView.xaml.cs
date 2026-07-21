@@ -1,7 +1,10 @@
-﻿using System.Windows;
+﻿using System;
+using System.Linq;
+using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.Windows.Shapes;
 using Liekinheitin.CreativeTool.Domain;
 using Liekinheitin.CreativeTool.Infrastructure;
 
@@ -10,67 +13,42 @@ namespace Liekinheitin.CreativeTool.Views
     public partial class PixelGridCanvasView : UserControl
     {
         private WallLayout _layout;
+        private SceneManager _scene;
         private BrushTool _brush;
         private PixelGridRenderer _renderer;
-        private PixelCanvas _canvas;
-        private ShapePlacementController _shapeController;
         private Func<Color> _getCurrentColor;
 
         private bool _isPainting;
-
-        // Suivi du drag de déplacement de la forme active (pas encore le redimensionnement).
         private bool _isDraggingShape;
-        private Point _dragStartScreen;
-        private int _dragStartLeft, _dragStartTop;
+        private Guid _selectedShapeId;
+        private int _dragOffsetCol, _dragOffsetRow;
 
-        private const int DefaultShapeSize = 6;
+        private const int DefaultShapeSize = 20;
+
+        /// <summary>Déclenché à chaque changement de sélection ou de propriété d'une forme
+        /// sélectionnée (déplacement en direct compris). null = plus rien sélectionné.</summary>
+        public event Action<PlacedShape?>? SelectionChanged;
 
         public PixelGridCanvasView()
         {
             InitializeComponent();
         }
 
-        public void Initialize(
-            WallLayout layout, PixelCanvas canvas, BrushTool brush,
-            ShapePlacementController shapeController, Func<Color> getCurrentColor)
+        public void Initialize(WallLayout layout, SceneManager scene, BrushTool brush, Func<Color> getCurrentColor)
         {
             _layout = layout;
-            _canvas = canvas;
+            _scene = scene;
             _brush = brush;
-            _shapeController = shapeController;
             _getCurrentColor = getCurrentColor;
 
             _renderer = new PixelGridRenderer(layout);
-            _renderer.DrawAll(canvas);
+            _renderer.DrawAll(scene.Display);
             GridImage.Source = _renderer.Bitmap;
         }
 
-        public void RefreshFromCanvas(PixelCanvas canvas) => _renderer.DrawAll(canvas);
+        public void RefreshFromScene() => _renderer.DrawAll(_scene.Display);
 
-        // ----- Pinceau (inchangé) -----
-
-        private void OnMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            _isPainting = true;
-            PaintAtScreenPoint(e.GetPosition(GridImage));
-        }
-
-        private void OnMouseMove(object sender, MouseEventArgs e)
-        {
-            if (_isPainting && e.LeftButton == MouseButtonState.Pressed)
-                PaintAtScreenPoint(e.GetPosition(GridImage));
-        }
-
-        private void PaintAtScreenPoint(Point p)
-        {
-            var (col, row) = ScreenToGrid(p);
-            if (col < 0 || col >= _layout.Columns || row < 0 || row >= _layout.Rows) return;
-
-            if (_brush.Paint(col, row))
-                _renderer.DrawPixel(col, row, _brush.CurrentColor);
-        }
-
-        // ----- Conversion écran -> grille (partagée) -----
+        // ----- Conversion écran <-> grille -----
 
         private (int Col, int Row) ScreenToGrid(Point p)
         {
@@ -83,7 +61,76 @@ namespace Liekinheitin.CreativeTool.Views
         private double CellWidth => GridImage.ActualWidth / _layout.Columns;
         private double CellHeight => GridImage.ActualHeight / _layout.Rows;
 
-        // ----- Drop d'une forme depuis ShapeListView -----
+        // ----- Clic : sélectionner une forme existante, ou peindre au pinceau -----
+
+        private void OnMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            var (col, row) = ScreenToGrid(e.GetPosition(GridImage));
+            var hit = _scene.HitTest(col, row);
+
+            if (hit is not null)
+            {
+                _selectedShapeId = hit.Id;
+                _isDraggingShape = true;
+                _dragOffsetCol = col - hit.X;
+                _dragOffsetRow = row - hit.Y;
+
+                DrawSelectionOverlay(hit);
+                SelectionChanged?.Invoke(hit);
+                GridImage.CaptureMouse();
+            }
+            else
+            {
+                ShapeOverlay.Children.Clear();
+                SelectionChanged?.Invoke(null);
+
+                _isPainting = true;
+                PaintAtScreenPoint(e.GetPosition(GridImage));
+            }
+        }
+
+        private void OnMouseMove(object sender, MouseEventArgs e)
+        {
+            if (_isDraggingShape && e.LeftButton == MouseButtonState.Pressed)
+            {
+                var (col, row) = ScreenToGrid(e.GetPosition(GridImage));
+                int newX = col - _dragOffsetCol;
+                int newY = row - _dragOffsetRow;
+
+                _scene.MoveShape(_selectedShapeId, newX, newY); // clampe automatiquement
+
+                RefreshFromScene();
+
+                var shape = _scene.Shapes.FirstOrDefault(s => s.Id == _selectedShapeId);
+                if (shape is not null)
+                {
+                    DrawSelectionOverlay(shape);
+                    SelectionChanged?.Invoke(shape); // mise à jour temps réel du panneau
+                }
+            }
+            else if (_isPainting && e.LeftButton == MouseButtonState.Pressed)
+            {
+                PaintAtScreenPoint(e.GetPosition(GridImage));
+            }
+        }
+
+        private void OnMouseUp(object sender, MouseButtonEventArgs e)
+        {
+            _isDraggingShape = false;
+            _isPainting = false;
+            GridImage.ReleaseMouseCapture();
+        }
+
+        private void PaintAtScreenPoint(Point p)
+        {
+            var (col, row) = ScreenToGrid(p);
+            if (col < 0 || col >= _layout.Columns || row < 0 || row >= _layout.Rows) return;
+
+            if (_brush.Paint(col, row))
+                RefreshFromScene();
+        }
+
+        // ----- Dépôt d'une nouvelle forme -----
 
         private void OnDrop(object sender, DragEventArgs e)
         {
@@ -92,98 +139,39 @@ namespace Liekinheitin.CreativeTool.Views
             var shapeType = (ShapeType)e.Data.GetData(ShapeListView.ShapeDragFormat);
             var (dropCol, dropRow) = ScreenToGrid(e.GetPosition(GridImage));
 
-            // Le point de drop devient le centre de la forme par défaut.
-            int left = dropCol - DefaultShapeSize / 2;
-            int top = dropRow - DefaultShapeSize / 2;
+            int x = dropCol - DefaultShapeSize / 2;
+            int y = dropRow - DefaultShapeSize / 2;
 
-            _shapeController.Begin(shapeType, left, top, DefaultShapeSize, DefaultShapeSize, _getCurrentColor());
-            _renderer.DrawAll(_canvas);
-            DrawOverlayRectangle();
+            var shape = _scene.AddShape(shapeType, x, y, DefaultShapeSize, DefaultShapeSize, _getCurrentColor());
+            RefreshFromScene();
 
-            RootGrid.Focus(); // pour capter les touches Entrée/Échap ensuite
+            _selectedShapeId = shape.Id;
+            DrawSelectionOverlay(shape);
+            SelectionChanged?.Invoke(shape);
         }
 
-        // ----- Overlay : rectangle englobant, déplaçable -----
+        // ----- Overlay de sélection -----
 
-        private void DrawOverlayRectangle()
+        private void DrawSelectionOverlay(PlacedShape shape)
         {
             ShapeOverlay.Children.Clear();
-            if (!_shapeController.IsActive) return;
 
-            var bounds = _shapeController.Bounds;
-
-            var rect = new System.Windows.Shapes.Rectangle
+            var rect = new Rectangle
             {
-                Width = bounds.Width * CellWidth,
-                Height = bounds.Height * CellHeight,
+                Width = shape.ActualWidth * CellWidth,
+                Height = shape.ActualHeight * CellHeight,
                 Stroke = Brushes.White,
                 StrokeThickness = 2,
                 StrokeDashArray = new DoubleCollection { 4, 2 },
                 Fill = Brushes.Transparent,
-                Cursor = Cursors.SizeAll,
+                IsHitTestVisible = false,
             };
-            rect.MouseLeftButtonDown += OnShapeBodyMouseDown;
-            rect.MouseMove += OnShapeBodyMouseMove;
-            rect.MouseLeftButtonUp += OnShapeBodyMouseUp;
 
-            PositionOverlayRectangle(rect, bounds.Left, bounds.Top, bounds.Width, bounds.Height);
-            ShapeOverlay.Children.Add(rect);
-        }
-
-        private void PositionOverlayRectangle(FrameworkElement rect, int left, int top, int width, int height)
-        {
-            // top de la forme (row la plus haute) -> coordonnée écran Y la plus petite.
-            int topRowFromTop = _layout.Rows - 1 - (top + height - 1);
-            Canvas.SetLeft(rect, left * CellWidth);
+            int topRowFromTop = _layout.Rows - 1 - (shape.Y + shape.ActualHeight - 1);
+            Canvas.SetLeft(rect, shape.X * CellWidth);
             Canvas.SetTop(rect, topRowFromTop * CellHeight);
-        }
 
-        private void OnShapeBodyMouseDown(object sender, MouseButtonEventArgs e)
-        {
-            _isDraggingShape = true;
-            _dragStartScreen = e.GetPosition(ShapeOverlay);
-            var bounds = _shapeController.Bounds;
-            _dragStartLeft = bounds.Left;
-            _dragStartTop = bounds.Top;
-            ((UIElement)sender).CaptureMouse();
-        }
-
-        private void OnShapeBodyMouseMove(object sender, MouseEventArgs e)
-        {
-            if (!_isDraggingShape) return;
-
-            var current = e.GetPosition(ShapeOverlay);
-            int deltaCol = (int)Math.Round((current.X - _dragStartScreen.X) / CellWidth);
-            int deltaRow = -(int)Math.Round((current.Y - _dragStartScreen.Y) / CellHeight); // écran Y inversé
-
-            _shapeController.MoveTo(_dragStartLeft + deltaCol, _dragStartTop + deltaRow);
-            _renderer.DrawAll(_canvas);
-            DrawOverlayRectangle();
-        }
-
-        private void OnShapeBodyMouseUp(object sender, MouseButtonEventArgs e)
-        {
-            _isDraggingShape = false;
-            ((UIElement)sender).ReleaseMouseCapture();
-        }
-
-        // ----- Validation / annulation -----
-
-        private void OnKeyDown(object sender, KeyEventArgs e)
-        {
-            if (!_shapeController.IsActive) return;
-
-            if (e.Key == Key.Enter)
-            {
-                _shapeController.Commit();
-                ShapeOverlay.Children.Clear();
-            }
-            else if (e.Key == Key.Escape)
-            {
-                _shapeController.Cancel();
-                _renderer.DrawAll(_canvas);
-                ShapeOverlay.Children.Clear();
-            }
+            ShapeOverlay.Children.Add(rect);
         }
     }
 }

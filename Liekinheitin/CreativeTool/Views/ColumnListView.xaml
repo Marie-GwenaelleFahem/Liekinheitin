@@ -1,14 +1,23 @@
 ﻿<UserControl x:Class="Liekinheitin.CreativeTool.Views.ColumnListView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <ListBox x:Name="ColumnListBox"
-             ItemsSource="{Binding Columns}"
-             SelectionChanged="OnColumnSelected"
-             MaxHeight="300">
-        <ListBox.ItemTemplate>
-            <DataTemplate>
-                <TextBlock Text="{Binding}" Margin="4,2" />
-            </DataTemplate>
-        </ListBox.ItemTemplate>
-    </ListBox>
+    <Border Background="{StaticResource PanelBackground}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1">
+        <StackPanel>
+            <Border Background="{StaticResource PanelTitleBackground}" Padding="4">
+                <TextBlock Text="Colonnes" Foreground="White" FontWeight="Bold" />
+            </Border>
+
+            <ListBox x:Name="ColumnListBox"
+                     ItemsSource="{Binding Columns}"
+                     SelectionChanged="OnColumnSelected"
+                     MaxHeight="500"
+                     Background="Transparent" BorderThickness="0">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding}" Foreground="White" Margin="4,2" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </StackPanel>
+    </Border>
 </UserControl>

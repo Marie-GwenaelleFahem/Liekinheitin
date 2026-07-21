@@ -4,6 +4,11 @@
              xmlns:local="clr-namespace:Liekinheitin.CreativeTool"
              xmlns:converters="clr-namespace:Liekinheitin.CreativeTool.Converters">
     <Application.Resources>
+        <SolidColorBrush x:Key="PanelBackground" Color="#FF2A2D34" />
+        <SolidColorBrush x:Key="PanelTitleBackground" Color="#FF3A3D44" />
+        <SolidColorBrush x:Key="PanelBorderBrush" Color="Gray" />
+
         <converters:ColorToBrushConverter x:Key="ColorToBrush" />
+        <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
     </Application.Resources>
 </Application>

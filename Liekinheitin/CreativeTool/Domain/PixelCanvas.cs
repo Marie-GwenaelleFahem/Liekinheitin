@@ -5,8 +5,9 @@ namespace Liekinheitin.CreativeTool.Domain
     public sealed class PixelCanvas
     {
         private readonly Color[,] _pixels;
-        private readonly HashSet<(int Col, int Row)> _dirty = new();
+        private readonly Dictionary<(int Col, int Row), int> _dirtyResendCounts = new();
         private readonly object _lock = new();
+        private const int ResendCount = 3; // survit à ~2 pertes UDP consécutives sur ce pixel
 
         public int Columns { get; }
         public int Rows { get; }
@@ -30,7 +31,7 @@ namespace Liekinheitin.CreativeTool.Domain
             lock (_lock)
             {
                 _pixels[col, row] = color;
-                _dirty.Add((col, row));
+                _dirtyResendCounts[(col, row)] = ResendCount;
             }
         }
 
@@ -42,21 +43,30 @@ namespace Liekinheitin.CreativeTool.Domain
                     for (int r = 0; r < Rows; r++)
                     {
                         _pixels[c, r] = color;
-                        _dirty.Add((c, r));
+                        _dirtyResendCounts[(c, r)] = ResendCount;
                     }
             }
         }
 
         /// <summary>
-        /// Récupère et vide la liste des pixels modifiés depuis le dernier appel.
-        /// Thread-safe : appelée depuis le thread d'envoi, pendant que l'UI peint.
+        /// Récupère les pixels encore "à renvoyer" (modifiés récemment, pas encore
+        /// confirmés assez de fois) et décrémente leur compteur. Un pixel modifié une
+        /// seule fois est donc envoyé ResendCount fois de suite avant d'être considéré
+        /// stable — tolère la perte d'un ou deux paquets UDP sans laisser de trace.
         /// </summary>
         public List<(int Col, int Row)> ConsumeDirty()
         {
             lock (_lock)
             {
-                var list = _dirty.ToList();
-                _dirty.Clear();
+                var list = _dirtyResendCounts.Keys.ToList();
+
+                foreach (var key in list)
+                {
+                    int remaining = _dirtyResendCounts[key] - 1;
+                    if (remaining <= 0) _dirtyResendCounts.Remove(key);
+                    else _dirtyResendCounts[key] = remaining;
+                }
+
                 return list;
             }
         }

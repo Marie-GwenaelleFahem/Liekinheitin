@@ -1,4 +1,5 @@
-﻿using System.Windows;
+﻿using Liekinheitin.CreativeTool.ViewModels;
+using System.Windows;
 
 namespace Liekinheitin.CreativeTool
 {
@@ -13,7 +14,12 @@ namespace Liekinheitin.CreativeTool
         private void OnLoaded(object sender, RoutedEventArgs e)
         {
             if (DataContext is ViewModels.MainViewModel vm)
-                GridView.Initialize(vm.Layout, vm.Canvas, vm.Brush, vm.ShapeController, () => vm.ColorPicker.CurrentColor);
+            {
+                GridView.Initialize(vm.Layout, vm.Scene, vm.Brush, () => vm.ColorPicker.CurrentColor);
+
+                GridView.SelectionChanged += vm.ShapeInspector.Load;
+                vm.ShapeInspector.ShapeModified += () => GridView.RefreshFromScene();
+            }
 
             ColumnList.ColumnSelected += OnColumnSelected;
         }
@@ -23,7 +29,7 @@ namespace Liekinheitin.CreativeTool
             if (DataContext is ViewModels.MainViewModel vm)
             {
                 vm.FillColumn(col);
-                GridView.RefreshFromCanvas(vm.Canvas);
+                GridView.RefreshFromScene();
             }
         }
     }

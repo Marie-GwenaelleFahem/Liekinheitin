@@ -2,30 +2,15 @@
 
 namespace Liekinheitin.CreativeTool.Domain
 {
-    /// <summary>
-    /// Peint une colonne entière d'un coup, en ignorant les cases sans LED
-    /// (même logique que BrushTool.Paint, appliquée à toute la colonne).
-    /// </summary>
     public sealed class ColumnFillTool
     {
-        private readonly PixelCanvas _canvas;
-        private readonly WallLayout _layout;
+        private readonly SceneManager _scene;
 
-        public ColumnFillTool(PixelCanvas canvas, WallLayout layout)
+        public ColumnFillTool(SceneManager scene)
         {
-            _canvas = canvas;
-            _layout = layout;
+            _scene = scene;
         }
 
-        public void FillColumn(int col, Color color)
-        {
-            if (col < 0 || col >= _layout.Columns) return;
-
-            for (int row = 0; row < _layout.Rows; row++)
-            {
-                if (_layout.HasLed(col, row))
-                    _canvas.SetPixel(col, row, color);
-            }
-        }
+        public void FillColumn(int col, Color color) => _scene.FillColumnFreehand(col, color);
     }
 }
