@@ -8,14 +8,14 @@ namespace Liekinheitin.CreativeTool.Models
 
         public double Duration { get; set; } = 30.0;
 
-        // Le mur physique réel est composé de 64 bandes de LED de 259 de long chacune (une
-        // bande = 2 univers DMX, 170 + 89 = 259 entités), pas d'une grille carrée 128x128 :
-        // voir Liekinheitin/patch.json et la doc d'architecture du projet. Confirmé sur le vrai
-        // matériel : chaque bande forme une colonne verticale (64 colonnes de 259 de haut), pas
-        // une ligne horizontale.
-        public int WallWidth { get; set; } = 64;
+        // Le mur visible fait bien 128 x 128 LED. Physiquement, il est câblé en 64 bandes de
+        // 259 LED chacune, pliées en U (2 colonnes de 128 LED visibles par bande + 3 LED
+        // invisibles de fixation/pli) : voir LoadRealEntityIds() dans MainWindow.xaml.cs pour le
+        // détail du dépliage. WallWidth/WallHeight décrivent l'image logique (128x128), pas le
+        // câblage physique.
+        public int WallWidth { get; set; } = 128;
 
-        public int WallHeight { get; set; } = 259;
+        public int WallHeight { get; set; } = 128;
 
         public string? AudioFilePath { get; set; }
 

@@ -1592,20 +1592,25 @@ namespace Liekinheitin.CreativeTool.Views
         // la documentation d'architecture du projet.
         private const int WallEntityIdStart = 100;
 
-        // Le mur physique est composé de 64 bandes de LED, chacune longue de 259 LED (chaque
-        // bande occupe 2 univers DMX : 170 + 89 = 259 entités). Confirmé sur le vrai matériel :
-        // chaque bande forme une COLONNE verticale du mur (64 colonnes de 259 LED de haut), pas
-        // une ligne horizontale — d'où le WallWidth/WallHeight de ShowProject (64 x 259) et le
-        // remplissage colonne par colonne ci-dessous plutôt qu'un simple tri global.
+        // Chaque bande physique fait 259 LED au total, mais seules 256 sont visibles : la bande
+        // est pliée en U et forme 2 colonnes de 128 LED visibles côte à côte (64 bandes x 2 =
+        // 128 colonnes = la largeur réelle du mur visible). Dans l'ordre des identifiants DMX
+        // d'une bande (0 à 258, relatif au début de la bande) :
+        //   - position 0            : invisible (fixation au cadre, en bas, colonne A)
+        //   - positions 1..128       : visibles, colonne A, montantes (bas -> haut)
+        //   - position 129           : invisible (pli de la bande, en haut)
+        //   - positions 130..257     : visibles, colonne B, descendantes (haut -> bas)
+        //   - position 258           : invisible (fixation au cadre, en bas, colonne B)
         private const int BandLength = 259;
+        private const int VisibleSegmentLength = 128;
 
         /// <summary>
-        /// Charge patch.json et renvoie la liste des identifiants d'entité réels du mur,
-        /// réarrangée pour correspondre à la grille interne (0, 1, 2... en ligne par ligne,
-        /// largeur = nombre de bandes) : la bande n devient la colonne n, remplie de haut en
-        /// bas dans l'ordre de ses canaux DMX. Sans ce fichier (poste de développement sans
-        /// copie du patch, par exemple), l'appli continue de fonctionner en local avec les ID
-        /// de grille bruts.
+        /// Charge patch.json et reconstruit, pour le mur, la grille d'identifiants réels 128x128
+        /// (largeur x hauteur) attendue par <see cref="ShowPlaybackEngine"/> : chaque bande
+        /// physique de 259 LED est "dépliée" en ses 2 colonnes visibles de 128 LED, dans le bon
+        /// sens (montante puis descendante), en ignorant les 3 LED invisibles de fixation/pli de
+        /// chaque bande. Sans ce fichier (poste de développement sans copie du patch, par
+        /// exemple), l'appli continue de fonctionner en local avec les ID de grille bruts.
         /// </summary>
         private static IReadOnlyList<int>? LoadRealEntityIds()
         {
@@ -1631,16 +1636,32 @@ namespace Liekinheitin.CreativeTool.Views
 
                 if (ids.Count == 0 || ids.Count % BandLength != 0)
                 {
-                    return ids; // structure inattendue : pas de réarrangement possible, on renvoie tel quel
+                    return ids; // structure inattendue : pas de dépliage possible, on renvoie tel quel
                 }
 
-                int bandCount = ids.Count / BandLength; // nombre de colonnes (bandes)
-                var grid = new int[ids.Count];
+                int bandCount = ids.Count / BandLength;
+                int wallWidth = bandCount * 2; // colonne A + colonne B par bande
+                var grid = new int[wallWidth * VisibleSegmentLength];
+
                 for (int band = 0; band < bandCount; band++)
                 {
-                    for (int position = 0; position < BandLength; position++)
+                    int bandStart = band * BandLength;
+                    int columnA = band * 2;
+                    int columnB = (band * 2) + 1;
+
+                    // Colonne A, montante : position relative 1..128 (0 = invisible, ignorée).
+                    for (int j = 0; j < VisibleSegmentLength; j++)
                     {
-                        grid[(position * bandCount) + band] = ids[(band * BandLength) + position];
+                        int row = (VisibleSegmentLength - 1) - j; // j=0 (juste après le bas) -> row du bas
+                        grid[(row * wallWidth) + columnA] = ids[bandStart + 1 + j];
+                    }
+
+                    // Colonne B, descendante : position relative 130..257 (129 = pli, invisible ;
+                    // 258 = fixation basse, invisible, jamais lue ici).
+                    for (int k = 0; k < VisibleSegmentLength; k++)
+                    {
+                        int row = k; // k=0 (juste après le pli) -> row du haut
+                        grid[(row * wallWidth) + columnB] = ids[bandStart + 130 + k];
                     }
                 }
 
