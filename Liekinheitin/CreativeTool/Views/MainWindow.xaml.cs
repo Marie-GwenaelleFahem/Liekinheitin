@@ -38,6 +38,7 @@ namespace Liekinheitin.CreativeTool.Views
         private readonly AudioPlaybackService _audioPlaybackService = new();
         private readonly IStatePublisher _statePublisher;
         private readonly DispatcherTimer _playbackTimer;
+        private readonly Dictionary<int, byte[]> _manualLyreChannels = new();
 
         private ShowProject _project;
         private TimelineClip? _selectedClip;
@@ -1772,7 +1773,7 @@ namespace Liekinheitin.CreativeTool.Views
             try
             {
                 var networkState = _playbackEngine.MapToRealEntityIds(CreateBlackWallState());
-                AddMovingHeadShow(networkState, 0);
+                AddMovingHeadShow(networkState, 0, allowManualControl: false);
                 _statePublisher.Publish(networkState);
             }
             catch
@@ -1780,8 +1781,55 @@ namespace Liekinheitin.CreativeTool.Views
                 PlaybackStatusItem.Content = "Erreur extinction finale UDP";
             }
         }
-        private const double MovingHeadBreakStart = 15.0;
-        private const double MovingHeadBreakEnd = 20.0;
+        private void OnSendLyreCommandClick(object sender, RoutedEventArgs e)
+        {
+            var state = new State();
+            var target = ReadLyreTarget();
+            var ids = target == 0 ? new[] { 2, 3, 4, 5 } : new[] { target };
+            var orange = LyreOrangeRadio.IsChecked == true;
+
+            foreach (var id in ids)
+            {
+                var channels = new byte[]
+                {
+                    ToDmx(LyrePanSlider.Value), 0,
+                    ToDmx(LyreTiltSlider.Value), 0,
+                    ToDmx(LyreSpeedSlider.Value),
+                    ToDmx(LyreDimmerSlider.Value),
+                    ToDmx(LyreStrobeSlider.Value),
+                    255, orange ? (byte)5 : (byte)0, 0, 0, 0, 0
+                };
+                _manualLyreChannels[id] = channels;
+                state.Entities.Add(new Entity { Id = id, Channels = channels });
+            }
+
+            _statePublisher.Publish(state);
+            ShowActionFeedback($"Commande envoyée à {(target == 0 ? "4 lyres" : $"la lyre {target - 1}")}");
+        }
+
+        private void OnBlackoutLyresClick(object sender, RoutedEventArgs e)
+        {
+            var state = new State();
+            var target = ReadLyreTarget();
+            var ids = target == 0 ? new[] { 2, 3, 4, 5 } : new[] { target };
+            foreach (var id in ids)
+            {
+                var channels = new byte[13];
+                _manualLyreChannels[id] = channels;
+                state.Entities.Add(new Entity { Id = id, Channels = channels });
+            }
+
+            _statePublisher.Publish(state);
+            ShowActionFeedback("Lyres éteintes");
+        }
+
+        private int ReadLyreTarget()
+            => LyreTargetComboBox.SelectedItem is ComboBoxItem { Tag: string tag }
+                && int.TryParse(tag, out var value)
+                    ? value
+                    : 0;
+        private const double MovingHeadBreakStart = 22.3;
+        private const double MovingHeadBreakEnd = 26.0;
 
         private static bool IsMovingHeadBreak(double currentTime)
             => currentTime >= MovingHeadBreakStart && currentTime < MovingHeadBreakEnd;
@@ -1798,7 +1846,7 @@ namespace Liekinheitin.CreativeTool.Views
             return state;
         }
 
-        private static void AddMovingHeadShow(State state, double currentTime)
+        private void AddMovingHeadShow(State state, double currentTime, bool allowManualControl = true)
         {
             var active = IsMovingHeadBreak(currentTime);
             var localTime = Math.Clamp(currentTime - MovingHeadBreakStart, 0, MovingHeadBreakEnd - MovingHeadBreakStart);
@@ -1807,7 +1855,11 @@ namespace Liekinheitin.CreativeTool.Views
             {
                 if (!active)
                 {
-                    state.Entities.Add(new Entity { Id = index + 2, Channels = new byte[13] });
+                    var id = index + 2;
+                    var channels = allowManualControl && _manualLyreChannels.TryGetValue(id, out var manualChannels)
+                        ? manualChannels
+                        : new byte[13];
+                    state.Entities.Add(new Entity { Id = id, Channels = channels });
                     continue;
                 }
 

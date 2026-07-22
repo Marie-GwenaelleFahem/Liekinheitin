@@ -24,6 +24,15 @@ namespace Liekinheitin.CreativeTool.Services
         {
             var colors = new Dictionary<int, RgbwColor>();
             var totalPixels = Math.Max(0, project.WallWidth * project.WallHeight);
+
+            // Une trame est un état complet du mur, pas une liste de pixels à modifier.
+            // En repartant de noir à chaque image, les pixels allumés par l'animation
+            // précédente sont réellement éteints dès qu'ils ne font plus partie du rendu.
+            for (var entityId = 0; entityId < totalPixels; entityId++)
+            {
+                colors[entityId] = new RgbwColor(0, 0, 0, 0);
+            }
+
             var masterLevel = ResolveMasterLevel(currentTime, project);
 
             var activeTracks = project.Tracks.Where(track => !track.IsMuted).ToList();
