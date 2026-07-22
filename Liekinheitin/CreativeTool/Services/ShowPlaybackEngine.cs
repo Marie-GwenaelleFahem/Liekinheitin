@@ -171,18 +171,29 @@ namespace Liekinheitin.CreativeTool.Services
             int wallHeight)
         {
             var localTime = currentTime - clip.StartTime;
+            if (clip.EffectType == EffectType.Sparkle)
+            {
+                ApplySparkles(colors, clip, localTime, totalPixels, wallWidth, wallHeight);
+                return;
+            }
             if (clip.EffectType == EffectType.FallingEmbers)
             {
-                ApplyFallingEmbers(colors, clip, localTime, wallWidth, wallHeight);
+                var rendered = new Dictionary<int, RgbwColor>();
+                ApplyFallingEmbers(rendered, clip, localTime, wallWidth, wallHeight);
+                CompositeMaskedEffect(colors, rendered, clip, localTime, totalPixels, wallWidth, wallHeight);
                 return;
             }
             if (clip.EffectType == EffectType.WhiteFallingLines)
             {
-                ApplyWhiteFallingLines(colors, clip, localTime, wallWidth, wallHeight);
+                var rendered = new Dictionary<int, RgbwColor>();
+                ApplyWhiteFallingLines(rendered, clip, localTime, wallWidth, wallHeight);
+                CompositeMaskedEffect(colors, rendered, clip, localTime, totalPixels, wallWidth, wallHeight);
                 return;
             }
-            if (CinematicEffectsRenderer.TryApply(colors, clip, localTime, wallWidth, wallHeight))
+            var cinematic = new Dictionary<int, RgbwColor>();
+            if (CinematicEffectsRenderer.TryApply(cinematic, clip, localTime, wallWidth, wallHeight))
             {
+                CompositeMaskedEffect(colors, cinematic, clip, localTime, totalPixels, wallWidth, wallHeight);
                 return;
             }
 
@@ -200,6 +211,30 @@ namespace Liekinheitin.CreativeTool.Services
                 }
 
                 colors[targetEntityId.Value] = Scale(ComputeClipColor(clip, localTime, targetEntityId.Value, wallWidth, wallHeight), movementIntensity);
+            }
+        }
+
+        private static void CompositeMaskedEffect(
+            IDictionary<int, RgbwColor> colors,
+            IReadOnlyDictionary<int, RgbwColor> rendered,
+            TimelineClip clip,
+            double localTime,
+            int totalPixels,
+            int wallWidth,
+            int wallHeight)
+        {
+            var sourceTargets = ResolveTargets(clip, totalPixels).ToList();
+            var rotationCenter = GetRotationCenter(clip, sourceTargets, wallWidth);
+            var movementOffset = ResolveMovementOffset(clip, localTime);
+            var allowed = sourceTargets
+                .Select(entityId => ApplyTransform(entityId, clip, rotationCenter, movementOffset.OffsetX, movementOffset.OffsetY, wallWidth, wallHeight))
+                .Where(entityId => entityId.HasValue)
+                .Select(entityId => entityId!.Value)
+                .ToHashSet();
+            var movementIntensity = MovementIntensity(clip, localTime);
+            foreach (var (entityId, color) in rendered)
+            {
+                if (allowed.Contains(entityId)) colors[entityId] = Scale(color, movementIntensity);
             }
         }
 
@@ -270,6 +305,89 @@ namespace Liekinheitin.CreativeTool.Services
                     }
                 }
             }
+        }
+
+        private static void ApplySparkles(
+            IDictionary<int, RgbwColor> colors,
+            TimelineClip clip,
+            double localTime,
+            int totalPixels,
+            int wallWidth,
+            int wallHeight)
+        {
+            var targets = SelectParticleTargets(clip, totalPixels, wallWidth, wallHeight);
+            var movementOffset = ResolveMovementOffset(clip, localTime);
+            var movementIntensity = MovementIntensity(clip, localTime);
+            var rotationCenter = GetRotationCenter(clip, targets, wallWidth);
+            var seed = (int)Math.Round(clip.StartTime * 1000) ^ 0x41C64E6D;
+            var speed = Math.Max(0.1, clip.Speed);
+
+            for (var index = 0; index < targets.Count; index++)
+            {
+                var targetEntityId = ApplyTransform(
+                    targets[index], clip, rotationCenter,
+                    movementOffset.OffsetX, movementOffset.OffsetY,
+                    wallWidth, wallHeight);
+                if (targetEntityId is null) continue;
+
+                var phase = Random01(seed, index, 1) * Math.PI * 2;
+                var rate = 0.62 + (Random01(seed, index, 2) * 0.92);
+                var wave = (Math.Sin((localTime * speed * rate * Math.PI * 2) + phase) + 1) * 0.5;
+                var smoothWave = wave * wave * (3 - (2 * wave));
+                var level = 0.62 + (0.38 * smoothWave);
+                colors[targetEntityId.Value] = Scale(clip.Color, level * clip.Intensity * movementIntensity);
+            }
+        }
+
+        private static List<int> SelectParticleTargets(TimelineClip clip, int totalPixels, int wallWidth, int wallHeight)
+        {
+            List<int> source;
+            if (clip.ParticlePlacement == ParticlePlacement.Selection)
+            {
+                source = clip.Target.EntityIds
+                    .Where(id => id >= 0 && id < totalPixels)
+                    .Distinct()
+                    .ToList();
+            }
+            else
+            {
+                var centerX = clip.RippleCenterX ?? ((wallWidth - 1) / 2.0);
+                var centerY = clip.RippleCenterY ?? ((wallHeight - 1) / 2.0);
+                var radiusX = Math.Max(2, wallWidth * 0.25 * Math.Clamp(clip.VisualScale, 0.35, 4));
+                var radiusY = Math.Max(2, wallHeight * 0.25 * Math.Clamp(clip.VisualScale, 0.35, 4));
+                var edgeSize = Math.Max(2, Math.Min(wallWidth, wallHeight) / 8);
+                source = new List<int>(totalPixels);
+                for (var entityId = 0; entityId < totalPixels; entityId++)
+                {
+                    var x = entityId % wallWidth;
+                    var y = entityId / wallWidth;
+                    var included = clip.ParticlePlacement switch
+                    {
+                        ParticlePlacement.AroundCenter =>
+                            Math.Pow((x - centerX) / radiusX, 2) + Math.Pow((y - centerY) / radiusY, 2) <= 1,
+                        ParticlePlacement.Left => x < wallWidth / 3,
+                        ParticlePlacement.Right => x >= (wallWidth * 2) / 3,
+                        ParticlePlacement.Top => y < wallHeight / 3,
+                        ParticlePlacement.Bottom => y >= (wallHeight * 2) / 3,
+                        ParticlePlacement.Edges => x < edgeSize || x >= wallWidth - edgeSize || y < edgeSize || y >= wallHeight - edgeSize,
+                        _ => true
+                    };
+                    if (included) source.Add(entityId);
+                }
+            }
+            if (source.Count == 0) return new List<int>();
+
+            var count = Math.Clamp(clip.ParticleCount, 1, source.Count);
+            var seed = (int)Math.Round(clip.StartTime * 1000) ^ 0x2C9277B5;
+            var random = new Random(seed);
+            var result = new List<int>(count);
+            for (var index = 0; index < count; index++)
+            {
+                var randomIndex = random.Next(index, source.Count);
+                (source[index], source[randomIndex]) = (source[randomIndex], source[index]);
+                result.Add(source[index]);
+            }
+            return result;
         }
 
         private static double Random01(int seed, int particle, int channel)

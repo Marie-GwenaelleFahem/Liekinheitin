@@ -66,19 +66,99 @@
             </Style.Triggers>
         </Style>
         <Style TargetType="ComboBox">
-            <Setter Property="Foreground" Value="#FFFFFF" />
+            <Setter Property="Foreground" Value="#F4F8FF" />
             <Setter Property="Background" Value="#0E1826" />
             <Setter Property="BorderBrush" Value="#4B607A" />
-            <Setter Property="Padding" Value="7,4" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Padding" Value="10,5" />
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ComboBox">
+                        <Grid x:Name="SelectorRoot" SnapsToDevicePixels="True">
+                            <ToggleButton x:Name="DropDownButton"
+                                          Focusable="False"
+                                          ClickMode="Press"
+                                          Background="{TemplateBinding Background}"
+                                          BorderBrush="{TemplateBinding BorderBrush}"
+                                          BorderThickness="{TemplateBinding BorderThickness}"
+                                          IsChecked="{Binding IsDropDownOpen, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                                <ToggleButton.Template>
+                                    <ControlTemplate TargetType="ToggleButton">
+                                        <Border x:Name="SelectorChrome"
+                                                CornerRadius="4"
+                                                Background="{TemplateBinding Background}"
+                                                BorderBrush="{TemplateBinding BorderBrush}"
+                                                BorderThickness="{TemplateBinding BorderThickness}">
+                                            <Path Width="9" Height="5" Margin="0,0,11,0"
+                                                  HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                  Fill="#AFC7E6"
+                                                  Data="M 0 0 L 4.5 5 L 9 0 Z" />
+                                        </Border>
+                                        <ControlTemplate.Triggers>
+                                            <Trigger Property="IsMouseOver" Value="True">
+                                                <Setter TargetName="SelectorChrome" Property="Background" Value="#16263A" />
+                                                <Setter TargetName="SelectorChrome" Property="BorderBrush" Value="#7293BA" />
+                                            </Trigger>
+                                            <Trigger Property="IsChecked" Value="True">
+                                                <Setter TargetName="SelectorChrome" Property="Background" Value="#13263A" />
+                                                <Setter TargetName="SelectorChrome" Property="BorderBrush" Value="#62E6FF" />
+                                            </Trigger>
+                                        </ControlTemplate.Triggers>
+                                    </ControlTemplate>
+                                </ToggleButton.Template>
+                            </ToggleButton>
+
+                            <ContentPresenter Margin="10,0,34,0"
+                                              VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                              HorizontalAlignment="Left"
+                                              IsHitTestVisible="False"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"
+                                              Content="{TemplateBinding SelectionBoxItem}"
+                                              ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                              ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
+
+                            <Popup x:Name="PART_Popup"
+                                   Placement="Bottom"
+                                   PlacementTarget="{Binding ElementName=SelectorRoot}"
+                                   IsOpen="{TemplateBinding IsDropDownOpen}"
+                                   AllowsTransparency="True"
+                                   Focusable="False"
+                                   PopupAnimation="Fade">
+                                <Border Margin="0,3,0,0"
+                                        MinWidth="{Binding PlacementTarget.ActualWidth, RelativeSource={RelativeSource AncestorType=Popup}}"
+                                        MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                                        Background="#101B2A"
+                                        BorderBrush="#4B607A"
+                                        BorderThickness="1"
+                                        CornerRadius="4">
+                                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                                        <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Contained" />
+                                    </ScrollViewer>
+                                </Border>
+                            </Popup>
+                        </Grid>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="HasItems" Value="False">
+                                <Setter TargetName="PART_Popup" Property="MinHeight" Value="30" />
+                            </Trigger>
+                            <Trigger Property="IsEnabled" Value="False">
+                                <Setter TargetName="SelectorRoot" Property="Opacity" Value="0.72" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsKeyboardFocusWithin" Value="True">
                     <Setter Property="BorderBrush" Value="#62E6FF" />
                     <Setter Property="Background" Value="#13263A" />
                 </Trigger>
                 <Trigger Property="IsEnabled" Value="False">
-                    <Setter Property="Foreground" Value="#A8B7CA" />
-                    <Setter Property="Background" Value="#202A38" />
-                    <Setter Property="BorderBrush" Value="#344257" />
+                    <Setter Property="Foreground" Value="#BBC8D8" />
+                    <Setter Property="Background" Value="#1B2634" />
+                    <Setter Property="BorderBrush" Value="#3B4B60" />
                 </Trigger>
             </Style.Triggers>
         </Style>
@@ -320,7 +400,29 @@
                                     <ComboBoxItem Content="Texte rouge sang" Tag="BloodText" />
                                     <ComboBoxItem Content="Cœur croqué" Tag="BittenHeart" />
                                     <ComboBoxItem Content="Liquide noir dégoulinant" Tag="BlackDrip" />
+                                    <ComboBoxItem Content="Explosion jaune en particules" Tag="FlameParticleBurst" />
+                                    <ComboBoxItem Content="Étoiles rouges persistantes" Tag="PersistentRedStars" />
+                                    <ComboBoxItem Content="Texte libre avec fondu" Tag="PixelText" />
                                 </ComboBox>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Texte affiché (retour à la ligne autorisé)" />
+                                <TextBox x:Name="TextContentTextBox"
+                                         Margin="0,4,0,10"
+                                         MinHeight="54"
+                                         AcceptsReturn="True"
+                                         TextWrapping="Wrap" />
+
+                                <Grid Margin="0,0,0,10">
+                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                    <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Échelle visuelle" />
+                                    <TextBlock x:Name="VisualScaleTextBlock" Grid.Column="1" Foreground="#62E6FF" FontFamily="Consolas" Text="1×" />
+                                </Grid>
+                                <Slider x:Name="VisualScaleSlider"
+                                        Margin="0,0,0,12"
+                                        Minimum="0.35"
+                                        Maximum="4"
+                                        Value="1"
+                                        TickFrequency="0.05" />
 
                                 <Grid Margin="0,0,0,8">
                                     <Grid.ColumnDefinitions>
@@ -329,11 +431,11 @@
                                         <ColumnDefinition Width="*" />
                                     </Grid.ColumnDefinitions>
                                     <StackPanel>
-                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre ondulation X" />
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre / position X" />
                                         <TextBox x:Name="RippleCenterXTextBox" Margin="0,4,0,0" Text="64" />
                                     </StackPanel>
                                     <StackPanel Grid.Column="2">
-                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre ondulation Y" />
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre / position Y" />
                                         <TextBox x:Name="RippleCenterYTextBox" Margin="0,4,0,0" Text="64" />
                                     </StackPanel>
                                 </Grid>
@@ -374,7 +476,25 @@
                                 <Slider x:Name="IntensitySlider" Margin="0,4,0,12" Minimum="0" Maximum="1" Value="1" />
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Vitesse" />
-                                <Slider x:Name="SpeedSlider" Margin="0,4,0,20" Minimum="0" Maximum="10" Value="1" />
+                                <Slider x:Name="SpeedSlider" Margin="0,4,0,12" Minimum="0" Maximum="10" Value="1" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Nombre de pixels / particules" />
+                                <TextBox x:Name="ParticleCountTextBox"
+                                         Margin="0,4,0,12"
+                                         Text="96"
+                                         ToolTip="Utilisé par Étincelles et les effets de particules" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Zone des particules" />
+                                <ComboBox x:Name="ParticlePlacementComboBox" Margin="0,4,0,20" SelectedIndex="0">
+                                    <ComboBoxItem Content="Tout le mur — aléatoire" Tag="FullWall" />
+                                    <ComboBoxItem Content="Autour du centre X / Y" Tag="AroundCenter" />
+                                    <ComboBoxItem Content="Partie gauche" Tag="Left" />
+                                    <ComboBoxItem Content="Partie droite" Tag="Right" />
+                                    <ComboBoxItem Content="Partie haute" Tag="Top" />
+                                    <ComboBoxItem Content="Partie basse" Tag="Bottom" />
+                                    <ComboBoxItem Content="Bordure du mur" Tag="Edges" />
+                                    <ComboBoxItem Content="Sélection dessinée" Tag="Selection" />
+                                </ComboBox>
 
                                 <Button x:Name="ApplyPropertiesButton" Height="34" Content="Appliquer les proprietes" />
                             </StackPanel>
@@ -568,7 +688,7 @@
                                     </StackPanel>
                                 </Border>
 
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="36 formes dessinées à la main" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Formes réutilisables et entièrement transformables" />
                                 <TextBox x:Name="ShapeSearchTextBox"
                                          Margin="0,6,0,8"
                                          Padding="10,7"
@@ -579,12 +699,14 @@
                                           SelectedIndex="0"
                                           SelectionChanged="OnShapeFilterChanged">
                                     <ComboBoxItem Content="Toutes les catégories" Tag="All" />
+                                    <ComboBoxItem Content="Classiques" Tag="Classiques" />
                                     <ComboBoxItem Content="Traits au pinceau" Tag="Traits au pinceau" />
                                     <ComboBoxItem Content="Halos &amp; anneaux" Tag="Halos &amp; anneaux" />
                                     <ComboBoxItem Content="Gouttes" Tag="Gouttes" />
                                     <ComboBoxItem Content="Rubans &amp; ondes" Tag="Rubans &amp; ondes" />
                                     <ComboBoxItem Content="Spirales" Tag="Spirales" />
                                     <ComboBoxItem Content="Formes organiques" Tag="Formes organiques" />
+                                    <ComboBoxItem Content="Formes de scène" Tag="Formes de scène" />
                                 </ComboBox>
 
                                 <ListBox x:Name="ShapesItemsControl"
@@ -602,6 +724,102 @@
                                                     HorizontalContentAlignment="Left"
                                                     Tag="{Binding}"
                                                     Click="OnShapeButtonClick">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" />
+                                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#72839E" FontSize="10" Text="{Binding Category}" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem x:Name="EffectsLibraryTab" Header="BIBLIOTHÈQUE">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Foreground="#F4F4F4" FontSize="16" FontWeight="SemiBold" Text="Effets et scènes réutilisables" />
+                                <TextBlock Margin="0,4,0,14" Foreground="#8195AE" FontSize="10" TextWrapping="Wrap"
+                                           Text="Cliquez un préréglage pour l’ajouter à la position de lecture. Modifiez ensuite son texte, sa couleur, son centre, sa taille, sa vitesse et sa durée dans MIXER." />
+
+                                <Border Margin="0,0,0,14" Padding="10" CornerRadius="8"
+                                        Background="#152235" BorderBrush="#36708B" BorderThickness="1">
+                                    <StackPanel>
+                                        <TextBlock Foreground="#E7F5FF" FontWeight="SemiBold" Text="ENREGISTRER DANS MA BIBLIOTHÈQUE" />
+                                        <TextBlock Margin="0,3,0,8" Foreground="#8195AE" FontSize="10" TextWrapping="Wrap"
+                                                   Text="Le rendu, la forme organique, les pixels, les timings et toutes les trajectoires sont conservés." />
+                                        <TextBox x:Name="ReusableTemplateNameTextBox" Margin="0,0,0,8" Padding="8,6"
+                                                 ToolTip="Nom du modèle réutilisable" />
+                                        <UniformGrid Columns="2">
+                                            <Button Height="32" Margin="0,0,4,0" Click="OnSaveSelectedClipTemplateClick"
+                                                    Content="CLIP SÉLECTIONNÉ" />
+                                            <Button Height="32" Margin="4,0,0,0" Click="OnSaveSequenceTemplateClick"
+                                                    Content="SÉQUENCE COMPLÈTE" />
+                                        </UniformGrid>
+                                    </StackPanel>
+                                </Border>
+
+                                <TextBox x:Name="EffectPresetSearchTextBox"
+                                         Margin="0,0,0,8"
+                                         Padding="10,7"
+                                         ToolTip="Rechercher un effet"
+                                         TextChanged="OnEffectPresetFilterChanged" />
+                                <ComboBox x:Name="EffectPresetCategoryComboBox"
+                                          Margin="0,0,0,12"
+                                          SelectedIndex="0"
+                                          SelectionChanged="OnEffectPresetFilterChanged">
+                                    <ComboBoxItem Content="Toutes les catégories" Tag="All" />
+                                    <ComboBoxItem Content="Lumière" Tag="Lumière" />
+                                    <ComboBoxItem Content="Rythme" Tag="Rythme" />
+                                    <ComboBoxItem Content="Particules" Tag="Particules" />
+                                    <ComboBoxItem Content="Ondulations" Tag="Ondulations" />
+                                    <ComboBoxItem Content="Textes" Tag="Textes" />
+                                    <ComboBoxItem Content="Scènes" Tag="Scènes" />
+                                    <ComboBoxItem Content="Mes animations" Tag="Mes animations" />
+                                </ComboBox>
+
+                                <TextBlock Margin="0,0,0,8" Foreground="#AFC7EE" FontWeight="SemiBold"
+                                           Text="MES ANIMATIONS RÉUTILISABLES" />
+                                <ListBox x:Name="ReusableTemplatesItemsControl"
+                                         MaxHeight="260" Margin="0,0,0,12"
+                                         Background="Transparent" BorderThickness="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource ShapeButtonStyle}" Margin="0,0,0,8" Height="44"
+                                                    HorizontalContentAlignment="Left" Tag="{Binding}"
+                                                    Click="OnReusableTemplateButtonClick">
+                                                <Grid>
+                                                    <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
+                                                    <TextBlock VerticalAlignment="Center" Text="{Binding Name}" />
+                                                    <TextBlock Grid.Column="1" VerticalAlignment="Center" Foreground="#72839E" FontSize="10"
+                                                               Text="{Binding Duration, StringFormat={}{0:0.###} s}" />
+                                                </Grid>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+
+                                <TextBlock Margin="0,0,0,8" Foreground="#AFC7EE" FontWeight="SemiBold"
+                                           Text="FORMES ORGANIQUES ANIMÉES" />
+
+                                <ListBox x:Name="EffectPresetsItemsControl"
+                                         Height="440"
+                                         Background="Transparent"
+                                         BorderThickness="0"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto"
+                                         VirtualizingStackPanel.IsVirtualizing="True"
+                                         VirtualizingStackPanel.VirtualizationMode="Recycling">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <Button Style="{StaticResource ShapeButtonStyle}"
+                                                    Margin="0,0,0,8"
+                                                    Height="44"
+                                                    HorizontalContentAlignment="Left"
+                                                    Tag="{Binding}"
+                                                    Click="OnEffectPresetButtonClick">
                                                 <Grid>
                                                     <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                                                     <TextBlock VerticalAlignment="Center" Text="{Binding DisplayName}" />

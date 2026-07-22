@@ -34,6 +34,7 @@ namespace Liekinheitin.CreativeTool.Views
         private readonly PlaybackController _playbackController = new();
         private readonly ProjectFileService _projectFileService = new();
         private readonly SavedProjectsService _savedProjectsService;
+        private readonly ReusableAnimationLibraryService _reusableAnimationLibraryService = new();
         private readonly ShowPlaybackEngine _playbackEngine;
         private readonly AudioPlaybackService _audioPlaybackService = new();
         private readonly IStatePublisher _statePublisher;
@@ -45,6 +46,8 @@ namespace Liekinheitin.CreativeTool.Views
         private Track? _selectedTrack;
         private TimelineClip? _recordingClip;
         private IReadOnlyList<IShape> _availableShapes = Array.Empty<IShape>();
+        private readonly IReadOnlyList<EffectPreset> _availableEffectPresets = EffectPresetFactory.CreateAll();
+        private IReadOnlyList<ReusableAnimationTemplate> _availableReusableTemplates = Array.Empty<ReusableAnimationTemplate>();
         private readonly Stopwatch _motionCaptureClock = new();
         private readonly Stopwatch _motionUiClock = new();
         private int _recordingOffsetX;
@@ -151,6 +154,7 @@ namespace Liekinheitin.CreativeTool.Views
             ResizeSmallerButton.Click += OnResizeSelectionClick;
             ResizeLargerButton.Click += OnResizeSelectionClick;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
+            VisualScaleSlider.ValueChanged += OnVisualScaleChanged;
             PreviewKeyDown += OnWindowPreviewKeyDown;
             _playbackController.StateChanged += (_, _) =>
             {
@@ -164,6 +168,8 @@ namespace Liekinheitin.CreativeTool.Views
             };
             _audioPlaybackService.MediaOpened += OnAudioMediaOpened;
 
+            ApplyEffectPresetFilter();
+            ReloadReusableTemplates();
             LoadProjectIntoUi(_project, null, markDirty: false);
             _playbackTimer.Start();
         }
@@ -396,6 +402,10 @@ namespace Liekinheitin.CreativeTool.Views
                 ReadByte(WhiteTextBox, _selectedClip.Color.W));
             _selectedClip.Intensity = Math.Clamp(IntensitySlider.Value, 0, 1);
             _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0, 10);
+            _selectedClip.TextContent = TextContentTextBox.Text;
+            _selectedClip.VisualScale = Math.Clamp(VisualScaleSlider.Value, 0.35, 4);
+            _selectedClip.ParticleCount = Math.Clamp(ReadInt(ParticleCountTextBox, _selectedClip.ParticleCount), 1, _project.WallWidth * _project.WallHeight);
+            _selectedClip.ParticlePlacement = ReadComboTag(ParticlePlacementComboBox, _selectedClip.ParticlePlacement);
             _selectedClip.RippleCenterX = Math.Clamp(ReadDouble(RippleCenterXTextBox, _selectedClip.RippleCenterX ?? (_project.WallWidth - 1) / 2.0), 0, _project.WallWidth - 1);
             _selectedClip.RippleCenterY = Math.Clamp(ReadDouble(RippleCenterYTextBox, _selectedClip.RippleCenterY ?? (_project.WallHeight - 1) / 2.0), 0, _project.WallHeight - 1);
             _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
@@ -424,6 +434,244 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             e.Handled = true;
+        }
+
+        private void OnVisualScaleChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (VisualScaleTextBlock is not null)
+            {
+                VisualScaleTextBlock.Text = $"{e.NewValue:0.##}×";
+            }
+        }
+
+        private void OnEffectPresetFilterChanged(object sender, EventArgs e) => ApplyEffectPresetFilter();
+
+        private void ReloadReusableTemplates()
+        {
+            _availableReusableTemplates = _reusableAnimationLibraryService.GetAll();
+            ApplyEffectPresetFilter();
+        }
+
+        private void OnSaveSelectedClipTemplateClick(object sender, RoutedEventArgs e)
+        {
+            if (_selectedClip is null || _selectedClip.IsAudio || _selectedClip.IsMedia)
+            {
+                ShowActionFeedback("Sélectionnez d'abord un clip visuel");
+                return;
+            }
+
+            var sourceTrack = FindTrackContainingClip(_selectedClip);
+            var name = ResolveReusableTemplateName(_selectedClip.Name);
+            var copy = CloneClipExact(_selectedClip);
+            copy.StartTime = 0;
+            var template = new ReusableAnimationTemplate
+            {
+                Name = name,
+                WallWidth = _project.WallWidth,
+                WallHeight = _project.WallHeight,
+                Duration = copy.Duration,
+                Tracks = new List<Track>
+                {
+                    new() { Name = sourceTrack?.Name ?? "Effets réutilisables", Clips = new List<TimelineClip> { copy } }
+                }
+            };
+            _reusableAnimationLibraryService.Save(template);
+            ReloadReusableTemplates();
+            ShowActionFeedback($"« {name} » enregistré avec tous ses réglages");
+        }
+
+        private void OnSaveSequenceTemplateClick(object sender, RoutedEventArgs e)
+        {
+            var visualClips = _project.Tracks
+                .SelectMany(track => track.Clips)
+                .Where(clip => !clip.IsAudio && !clip.IsMedia)
+                .ToList();
+            if (visualClips.Count == 0)
+            {
+                ShowActionFeedback("La timeline ne contient aucune animation visuelle");
+                return;
+            }
+
+            var origin = visualClips.Min(clip => clip.StartTime);
+            var tracks = new List<Track>();
+            foreach (var sourceTrack in _project.Tracks)
+            {
+                var copies = sourceTrack.Clips
+                    .Where(clip => !clip.IsAudio && !clip.IsMedia)
+                    .Select(clip =>
+                    {
+                        var copy = CloneClipExact(clip);
+                        copy.StartTime -= origin;
+                        return copy;
+                    })
+                    .ToList();
+                if (copies.Count > 0)
+                {
+                    tracks.Add(new Track { Name = sourceTrack.Name, IsMuted = sourceTrack.IsMuted, Clips = copies });
+                }
+            }
+
+            var fallbackName = string.IsNullOrWhiteSpace(_project.Name) ? "Séquence complète" : _project.Name;
+            var name = ResolveReusableTemplateName(fallbackName);
+            var template = new ReusableAnimationTemplate
+            {
+                Name = name,
+                WallWidth = _project.WallWidth,
+                WallHeight = _project.WallHeight,
+                Duration = visualClips.Max(clip => clip.EndTime) - origin,
+                Tracks = tracks
+            };
+            _reusableAnimationLibraryService.Save(template);
+            ReloadReusableTemplates();
+            ShowActionFeedback($"Séquence « {name} » enregistrée à l'identique");
+        }
+
+        private string ResolveReusableTemplateName(string fallback)
+        {
+            var requested = ReusableTemplateNameTextBox.Text.Trim();
+            ReusableTemplateNameTextBox.Text = string.Empty;
+            return string.IsNullOrWhiteSpace(requested) ? fallback : requested;
+        }
+
+        private void OnReusableTemplateButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: ReusableAnimationTemplate template }) return;
+            if (template.WallWidth != _project.WallWidth || template.WallHeight != _project.WallHeight)
+            {
+                MessageBox.Show(this,
+                    $"Ce modèle a été créé pour un mur {template.WallWidth} × {template.WallHeight}. " +
+                    $"Le projet actuel utilise {_project.WallWidth} × {_project.WallHeight} : l'insertion exacte est impossible.",
+                    "Dimensions incompatibles", MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var insertionTime = Math.Clamp(_playbackController.CurrentTime, 0, _project.Duration);
+            TimelineClip? firstInserted = null;
+            foreach (var templateTrack in template.Tracks)
+            {
+                var destination = _project.Tracks.FirstOrDefault(track =>
+                    string.Equals(track.Name, templateTrack.Name, StringComparison.OrdinalIgnoreCase));
+                if (destination is null)
+                {
+                    destination = new Track { Name = templateTrack.Name, IsMuted = templateTrack.IsMuted };
+                    _project.Tracks.Add(destination);
+                }
+
+                foreach (var source in templateTrack.Clips)
+                {
+                    var copy = CloneClipExact(source);
+                    copy.StartTime = insertionTime + source.StartTime;
+                    destination.Clips.Add(copy);
+                    firstInserted ??= copy;
+                }
+            }
+
+            if (firstInserted is null) return;
+            _selectedClip = firstInserted;
+            _selectedTrack = FindTrackContainingClip(firstInserted);
+            EnsureProjectDurationIncludesClips();
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(firstInserted);
+            UpdatePropertyPanel(firstInserted);
+            EnsurePlaybackInsideClip(firstInserted);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+            ShowActionFeedback($"« {template.Name} » inséré sans perdre ses réglages");
+        }
+
+        private void ApplyEffectPresetFilter()
+        {
+            if (EffectPresetsItemsControl is null || EffectPresetSearchTextBox is null || EffectPresetCategoryComboBox is null)
+            {
+                return;
+            }
+
+            var query = EffectPresetSearchTextBox.Text.Trim();
+            var category = EffectPresetCategoryComboBox.SelectedItem is ComboBoxItem { Tag: string tag } ? tag : "All";
+            EffectPresetsItemsControl.ItemsSource = _availableEffectPresets
+                .Where(preset => (category == "All" || string.Equals(preset.Category, category, StringComparison.OrdinalIgnoreCase))
+                                 && (string.IsNullOrWhiteSpace(query)
+                                     || preset.DisplayName.Contains(query, StringComparison.OrdinalIgnoreCase)
+                                     || preset.Category.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+            ReusableTemplatesItemsControl.ItemsSource = _availableReusableTemplates
+                .Where(template => (category == "All" || string.Equals(category, "Mes animations", StringComparison.OrdinalIgnoreCase))
+                                   && (string.IsNullOrWhiteSpace(query)
+                                       || template.Name.Contains(query, StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
+        private void OnEffectPresetButtonClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: EffectPreset preset })
+            {
+                return;
+            }
+
+            var track = _project.Tracks.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, "Effets réutilisables", StringComparison.OrdinalIgnoreCase));
+            if (track is null)
+            {
+                track = new Track { Name = "Effets réutilisables" };
+                _project.Tracks.Add(track);
+            }
+
+            var startTime = Math.Clamp(_playbackController.CurrentTime, 0, Math.Max(0, _project.Duration - 0.05));
+            var target = preset.UsesScatteredSelection
+                ? new TargetSelection { Type = TargetType.Selection, EntityIds = CreateScatteredSelection(96, (int)Math.Round(startTime * 1000) + 1701) }
+                : CreateOrganicPresetTarget(preset.BaseShapeName);
+            var clip = new TimelineClip
+            {
+                Name = preset.DisplayName,
+                StartTime = startTime,
+                Duration = preset.Duration,
+                EffectType = preset.EffectType,
+                Target = target,
+                Color = preset.Color,
+                Intensity = preset.Intensity,
+                Speed = preset.Speed,
+                TextContent = preset.TextContent,
+                VisualScale = 1,
+                ParticleCount = preset.ParticleCount,
+                SourceShapeName = preset.BaseShapeName,
+                RippleCenterX = (_project.WallWidth - 1) / 2.0,
+                RippleCenterY = (_project.WallHeight - 1) / 2.0
+            };
+            track.Clips.Add(clip);
+            _selectedTrack = track;
+            _selectedClip = clip;
+            EnsureProjectDurationIncludesClips();
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            UpdatePropertyPanel(clip);
+            EnsurePlaybackInsideClip(clip);
+            MarkDirty();
+            RenderPreview(_playbackController.CurrentTime);
+            ShowActionFeedback($"{preset.DisplayName} ajouté — modifiable dans MIXER");
+        }
+
+        private TargetSelection CreateOrganicPresetTarget(string shapeName)
+        {
+            var shape = ShapeFactory.CreateForClip(null, _project.WallWidth, _project.WallHeight)
+                .FirstOrDefault(candidate => string.Equals(candidate.DisplayName, shapeName, StringComparison.OrdinalIgnoreCase));
+            if (shape is null) return TargetSelection.FullWall();
+            return new TargetSelection
+            {
+                Type = TargetType.Selection,
+                EntityIds = shape.GetEntityIds().Distinct().OrderBy(id => id).ToList()
+            };
+        }
+
+        private List<int> CreateScatteredSelection(int count, int seed)
+        {
+            var random = new Random(seed);
+            var ids = new HashSet<int>();
+            var totalPixels = Math.Max(1, _project.WallWidth * _project.WallHeight);
+            while (ids.Count < Math.Min(count, totalPixels))
+            {
+                ids.Add(random.Next(totalPixels));
+            }
+            return ids.OrderBy(id => id).ToList();
         }
 
         private void OnAddOrganicRippleClick(object sender, RoutedEventArgs e)
@@ -549,8 +797,10 @@ namespace Liekinheitin.CreativeTool.Views
 
             var clip = GetReusableEmptyShapeClip() ?? CreateShapeClip(shape.DisplayName);
             clip.Name = shape.DisplayName;
+            clip.SourceShapeName = shape.DisplayName;
             clip.Target.Type = TargetType.Selection;
             clip.Target.EntityIds = entityIds;
+            if (clip.EffectType == EffectType.Sparkle) clip.ParticlePlacement = ParticlePlacement.Selection;
             clip.MovementOffsetX = 0;
             clip.MovementOffsetY = 0;
             clip.MovementEffect = ReadComboTag(MovementEffectComboBox, clip.MovementEffect);
@@ -590,6 +840,7 @@ namespace Liekinheitin.CreativeTool.Views
 
             var clip = GetReusableEmptyShapeClip() ?? CreateShapeClip(shapeName);
             clip.Name = shapeName;
+            clip.SourceShapeName = shapeName;
             clip.EffectType = isHeartbeat ? EffectType.Wave : EffectType.Ripple;
             clip.Target.Type = TargetType.Selection;
             clip.Target.EntityIds = entityIds;
@@ -1273,6 +1524,10 @@ namespace Liekinheitin.CreativeTool.Views
             WhiteTextBox.IsEnabled = enabled;
             IntensitySlider.IsEnabled = enabled;
             SpeedSlider.IsEnabled = enabled;
+            TextContentTextBox.IsEnabled = enabled;
+            VisualScaleSlider.IsEnabled = enabled;
+            ParticleCountTextBox.IsEnabled = enabled;
+            ParticlePlacementComboBox.IsEnabled = enabled;
             ApplyPropertiesButton.IsEnabled = enabled;
             ColorPickerControl.IsEnabled = enabled;
             ShapeEditModeComboBox.IsEnabled = enabled;
@@ -1300,6 +1555,10 @@ namespace Liekinheitin.CreativeTool.Views
             WhiteTextBox.IsEnabled = enabled && !isAudioClip;
             IntensitySlider.IsEnabled = enabled && !isAudioClip;
             SpeedSlider.IsEnabled = enabled && !isAudioClip;
+            TextContentTextBox.IsEnabled = enabled && !isAudioClip;
+            VisualScaleSlider.IsEnabled = enabled && !isAudioClip;
+            ParticleCountTextBox.IsEnabled = enabled && !isAudioClip;
+            ParticlePlacementComboBox.IsEnabled = enabled && !isAudioClip;
             RippleCenterXTextBox.IsEnabled = enabled && !isAudioClip;
             RippleCenterYTextBox.IsEnabled = enabled && !isAudioClip;
             AddOrganicRippleButton.IsEnabled = enabled && !isAudioClip;
@@ -1323,6 +1582,11 @@ namespace Liekinheitin.CreativeTool.Views
             ColorPickerControl.SetColor(clip.Color);
             IntensitySlider.Value = clip.Intensity;
             SpeedSlider.Value = clip.Speed;
+            TextContentTextBox.Text = clip.TextContent;
+            VisualScaleSlider.Value = Math.Clamp(clip.VisualScale, 0.35, 4);
+            VisualScaleTextBlock.Text = $"{clip.VisualScale:0.##}×";
+            ParticleCountTextBox.Text = clip.ParticleCount.ToString(CultureInfo.InvariantCulture);
+            SelectComboByTag(ParticlePlacementComboBox, clip.ParticlePlacement.ToString());
             RippleCenterXTextBox.Text = (clip.RippleCenterX ?? ((_project.WallWidth - 1) / 2.0)).ToString("0.##", CultureInfo.InvariantCulture);
             RippleCenterYTextBox.Text = (clip.RippleCenterY ?? ((_project.WallHeight - 1) / 2.0)).ToString("0.##", CultureInfo.InvariantCulture);
             SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
@@ -1337,7 +1601,7 @@ namespace Liekinheitin.CreativeTool.Views
             ShapesTab.IsEnabled = true;
             ShapesClipTextBlock.Text = clip is null
                 ? "Clique une forme pour créer une barre"
-                : $"Formes pour le clip : {clip.Name}";
+                : $"Forme source : {clip.SourceShapeName}\nClip : {clip.Name}";
             UpdateShapeMotionUi(clip);
         }
 
@@ -1638,13 +1902,6 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void RenderPreview(double currentTime)
         {
-            if (IsMovingHeadBreak(currentTime))
-            {
-                LedPreview.Clear();
-                UpdatePreviewSelectionOverlay();
-                return;
-            }
-
             var state = _playbackEngine.ComputeState(currentTime, _project);
             if (state.Entities.Count == 0)
             {
@@ -1755,9 +2012,7 @@ namespace Liekinheitin.CreativeTool.Views
         {
             try
             {
-                var gridState = IsMovingHeadBreak(currentTime)
-                    ? CreateBlackWallState()
-                    : _playbackEngine.ComputeState(currentTime, _project);
+                var gridState = _playbackEngine.ComputeState(currentTime, _project);
                 var networkState = _playbackEngine.MapToRealEntityIds(gridState);
                 AddMovingHeadShow(networkState, currentTime);
                 _statePublisher.Publish(networkState);
@@ -1984,42 +2239,51 @@ namespace Liekinheitin.CreativeTool.Views
 
         private static TimelineClip DuplicateClip(TimelineClip source)
         {
-            return new TimelineClip
-            {
-                Name = $"{source.Name} (copie)",
-                StartTime = source.EndTime + 0.1,
-                Duration = source.Duration,
-                EffectType = source.EffectType,
-                IsAudio = source.IsAudio,
-                IsHidden = false,
-                IsMedia = source.IsMedia,
-                MediaOverlayId = source.MediaOverlayId,
-                Target = new TargetSelection
-                {
-                    Type = source.Target.Type,
-                    TrackName = source.Target.TrackName,
-                    EntityIds = source.Target.EntityIds.ToList()
-                },
-                Color = source.Color,
-                Intensity = source.Intensity,
-                Speed = source.Speed,
-                RippleCenterX = source.RippleCenterX,
-                RippleCenterY = source.RippleCenterY,
-                MovementEffect = source.MovementEffect,
-                MovementOffsetX = source.MovementOffsetX,
-                MovementOffsetY = source.MovementOffsetY,
-                RotationDegrees = source.RotationDegrees,
-                IsMotionDraft = source.IsMotionDraft,
-                MovementKeyframes = source.MovementKeyframes
-                    .Select(keyframe => new MovementKeyframe
-                    {
-                        Time = keyframe.Time,
-                        OffsetX = keyframe.OffsetX,
-                        OffsetY = keyframe.OffsetY
-                    })
-                    .ToList()
-            };
+            var copy = CloneClipExact(source);
+            copy.Name = $"{source.Name} (copie)";
+            copy.StartTime = source.EndTime + 0.1;
+            copy.IsHidden = false;
+            return copy;
         }
+
+        private static TimelineClip CloneClipExact(TimelineClip source) => new()
+        {
+            Name = source.Name,
+            StartTime = source.StartTime,
+            Duration = source.Duration,
+            EffectType = source.EffectType,
+            IsAudio = source.IsAudio,
+            IsHidden = source.IsHidden,
+            IsMedia = source.IsMedia,
+            MediaOverlayId = source.MediaOverlayId,
+            Target = new TargetSelection
+            {
+                Type = source.Target.Type,
+                TrackName = source.Target.TrackName,
+                EntityIds = source.Target.EntityIds.ToList()
+            },
+            Color = source.Color,
+            Intensity = source.Intensity,
+            Speed = source.Speed,
+            TextContent = source.TextContent,
+            VisualScale = source.VisualScale,
+            ParticleCount = source.ParticleCount,
+            ParticlePlacement = source.ParticlePlacement,
+            SourceShapeName = source.SourceShapeName,
+            RippleCenterX = source.RippleCenterX,
+            RippleCenterY = source.RippleCenterY,
+            MovementEffect = source.MovementEffect,
+            MovementOffsetX = source.MovementOffsetX,
+            MovementOffsetY = source.MovementOffsetY,
+            RotationDegrees = source.RotationDegrees,
+            IsMotionDraft = source.IsMotionDraft,
+            MovementKeyframes = source.MovementKeyframes.Select(keyframe => new MovementKeyframe
+            {
+                Time = keyframe.Time,
+                OffsetX = keyframe.OffsetX,
+                OffsetY = keyframe.OffsetY
+            }).ToList()
+        };
 
         private static double GetMaxClipEnd(ShowProject project)
             => project.Tracks
@@ -2620,6 +2884,11 @@ namespace Liekinheitin.CreativeTool.Views
 
         private static byte ReadByte(TextBox textBox, byte fallback)
             => byte.TryParse(textBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+                ? value
+                : fallback;
+
+        private static int ReadInt(TextBox textBox, int fallback)
+            => int.TryParse(textBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
                 ? value
                 : fallback;
 

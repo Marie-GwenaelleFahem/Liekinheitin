@@ -23,6 +23,9 @@ namespace Liekinheitin.CreativeTool.Models
         MoonKissSilhouettes,
         BloodText,
         BittenHeart,
-        BlackDrip
+        BlackDrip,
+        FlameParticleBurst,
+        PersistentRedStars,
+        PixelText
     }
 }

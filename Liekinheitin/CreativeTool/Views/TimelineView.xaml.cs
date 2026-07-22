@@ -620,6 +620,9 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.BloodText => Color.FromRgb(136, 8, 20),
                 EffectType.BittenHeart => Color.FromRgb(208, 16, 36),
                 EffectType.BlackDrip => Color.FromRgb(30, 30, 35),
+                EffectType.FlameParticleBurst => Color.FromRgb(255, 214, 24),
+                EffectType.PersistentRedStars => Color.FromRgb(198, 5, 22),
+                EffectType.PixelText => Color.FromRgb(238, 238, 238),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }

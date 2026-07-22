@@ -9,13 +9,15 @@ public static class ShapeFactory
     public static IReadOnlyList<IShape> CreateForClip(TimelineClip? clip, int gridWidth = 128, int gridHeight = 128)
     {
         clip ??= new TimelineClip { Target = new TargetSelection { Type = TargetType.Selection } };
-        var shapes = new List<IShape>(36);
+        var shapes = new List<IShape>(51);
+        AddClassicShapes(shapes, clip, gridWidth, gridHeight);
         AddBrushCircles(shapes, clip, gridWidth, gridHeight);
         AddBrokenHalos(shapes, clip, gridWidth, gridHeight);
         AddDrops(shapes, clip, gridWidth, gridHeight);
         AddRibbons(shapes, clip, gridWidth, gridHeight);
         AddSpirals(shapes, clip, gridWidth, gridHeight);
         AddOrganicBlobs(shapes, clip, gridWidth, gridHeight);
+        AddStageShapes(shapes, clip, gridWidth, gridHeight);
         return shapes;
     }
 
@@ -27,6 +29,17 @@ public static class ShapeFactory
             GridWidth = width,
             GridHeight = height
         };
+
+    private static void AddClassicShapes(ICollection<IShape> shapes, TimelineClip clip, int width, int height)
+    {
+        shapes.Add(new CircleShape(clip) { CenterX = width / 2, CenterY = height / 2, Radius = Math.Min(width, height) / 6, GridWidth = width, GridHeight = height });
+        shapes.Add(new RectangleShape(clip) { X = width / 3, Y = height / 3, Width = width / 3, Height = height / 3, GridWidth = width, GridHeight = height });
+        shapes.Add(new TriangleShape(clip) { GridWidth = width, GridHeight = height });
+        shapes.Add(new LineShape(clip) { X1 = 16, Y1 = height / 2, X2 = width - 17, Y2 = height / 2, GridWidth = width, GridHeight = height });
+        shapes.Add(new PolygonShape(clip) { GridWidth = width, GridHeight = height });
+        shapes.Add(new CrownShape(clip) { CenterX = width / 2, CenterY = height / 2, GridWidth = width, GridHeight = height });
+        shapes.Add(new KnightShape(clip) { CenterX = width / 2, CenterY = height / 2, GridWidth = width, GridHeight = height });
+    }
 
     private static void AddBrushCircles(ICollection<IShape> shapes, TimelineClip clip, int width, int height)
     {
@@ -129,6 +142,9 @@ public static class ShapeFactory
 
     private static void AddOrganicBlobs(ICollection<IShape> shapes, TimelineClip clip, int width, int height)
     {
+        shapes.Add(Shape(clip, "Toile organique — mur complet", "Formes organiques", width, height,
+            (_, _) => true));
+
         for (var index = 0; index < 6; index++)
         {
             var baseRadius = 15 + (index * 3.2);
@@ -146,5 +162,77 @@ public static class ShapeFactory
                     return hollow ? distance <= edge && distance >= edge - 3.2 : distance <= edge;
                 }));
         }
+    }
+
+    private static void AddStageShapes(ICollection<IShape> shapes, TimelineClip clip, int width, int height)
+    {
+        const string category = "Formes de scène";
+        shapes.Add(Shape(clip, "Cœur plein", category, width, height, (x, y) =>
+        {
+            var nx = x / 24.0;
+            var ny = -y / 24.0;
+            return Math.Pow((nx * nx) + (ny * ny) - 1, 3) - (nx * nx * ny * ny * ny) <= 0;
+        }));
+
+        shapes.Add(Shape(clip, "Flamme stylisée", category, width, height, (x, y) =>
+        {
+            var normalizedY = (y + 27) / 54.0;
+            if (normalizedY < 0 || normalizedY > 1) return false;
+            var widthAtY = 3 + (Math.Sin(normalizedY * Math.PI) * 14) + (normalizedY * 5);
+            var sway = Math.Sin(normalizedY * 8) * 2.2;
+            return Math.Abs(x - sway) <= widthAtY;
+        }));
+
+        shapes.Add(Shape(clip, "Étoile à cinq branches", category, width, height, (x, y) =>
+        {
+            var angle = Math.Atan2(y, x) - (Math.PI / 2);
+            var radius = Math.Sqrt((x * x) + (y * y));
+            var edge = 13 + (10 * Math.Max(0, Math.Cos(angle * 5)));
+            return radius <= edge;
+        }));
+
+        shapes.Add(Shape(clip, "Croissant de lune", category, width, height, (x, y) =>
+        {
+            var outer = (x * x) + (y * y) <= 28 * 28;
+            var cutout = ((x - 11) * (x - 11)) + ((y + 2) * (y + 2)) <= 25 * 25;
+            return outer && !cutout;
+        }));
+
+        shapes.Add(Shape(clip, "Bandes diagonales", category, width, height, (x, y) =>
+        {
+            var diagonal = (int)Math.Round(x - (y * 0.55));
+            var wrapped = ((diagonal % 17) + 17) % 17;
+            return wrapped <= 2;
+        }));
+
+        shapes.Add(Shape(clip, "Bonbon enveloppé", category, width, height, (x, y) =>
+        {
+            var body = ((x * x) / 18.0 / 18.0) + ((y * y) / 11.0 / 11.0) <= 1;
+            var wrappers = Math.Abs(x) is >= 18 and <= 28 && Math.Abs(y) <= Math.Max(2, 9 - ((Math.Abs(x) - 18) / 2));
+            return body || wrappers;
+        }));
+
+        shapes.Add(Shape(clip, "Deux silhouettes", category, width, height, (x, y) =>
+        {
+            bool Person(double localX)
+            {
+                var head = (localX * localX) + ((y + 15) * (y + 15)) <= 7 * 7;
+                var body = y >= -9 && y <= 31 && Math.Abs(localX) <= 5 + ((y + 9) * 0.12);
+                return head || body;
+            }
+            return Person(x + 15) || Person(x - 15);
+        }));
+
+        shapes.Add(Shape(clip, "Nuage de points", category, width, height, (x, y) =>
+        {
+            var px = (int)x + (width / 2);
+            var py = (int)y + (height / 2);
+            unchecked
+            {
+                var hash = (uint)((px * 374761393) ^ (py * 668265263));
+                hash = (hash ^ (hash >> 13)) * 1274126177u;
+                return (hash & 255) < 8;
+            }
+        }));
     }
 }
