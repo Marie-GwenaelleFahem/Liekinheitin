@@ -8,6 +8,19 @@ namespace Liekinheitin.CreativeTool.Services
 {
     public class ShowPlaybackEngine
     {
+        // Identifiants réels du patch (patch.json), triés, une seule fois : le pixel de grille
+        // interne n (0, 1, 2...) correspond à _realEntityIds[n]. Tout le calcul interne des
+        // effets (Wave, Chase, Ripple, rotation, déplacement...) continue de raisonner en
+        // coordonnées de grille (x = id % largeur, y = id / largeur) ; seul l'identifiant final
+        // écrit dans l'Entity envoyée est traduit vers le vrai ID physique, pour que
+        // RoutingHost/PatchService le reconnaisse au lieu de l'ignorer silencieusement.
+        private readonly IReadOnlyList<int>? _realEntityIds;
+
+        public ShowPlaybackEngine(IReadOnlyList<int>? realEntityIds = null)
+        {
+            _realEntityIds = realEntityIds;
+        }
+
         public State ComputeState(double currentTime, ShowProject project)
         {
             var colors = new Dictionary<int, RgbwColor>();
@@ -28,7 +41,7 @@ namespace Liekinheitin.CreativeTool.Services
                 var fadedColor = Scale(color, masterLevel);
                 state.Entities.Add(new Entity
                 {
-                    Id = entityId,
+                    Id = ResolveRealEntityId(entityId),
                     Channels = fadedColor.W > 0
                         ? new[] { fadedColor.R, fadedColor.G, fadedColor.B, fadedColor.W }
                         : new[] { fadedColor.R, fadedColor.G, fadedColor.B }
@@ -37,6 +50,16 @@ namespace Liekinheitin.CreativeTool.Services
 
             return state;
         }
+
+        /// <summary>
+        /// Traduit un identifiant de grille interne (0, 1, 2...) vers le vrai identifiant
+        /// physique du patch, s'il en existe un à cette position. Sans liste réelle chargée (ou
+        /// position hors limites), renvoie l'identifiant de grille tel quel.
+        /// </summary>
+        private int ResolveRealEntityId(int gridIndex)
+            => _realEntityIds is { Count: > 0 } && gridIndex >= 0 && gridIndex < _realEntityIds.Count
+                ? _realEntityIds[gridIndex]
+                : gridIndex;
 
         private static double ResolveMasterLevel(double currentTime, ShowProject project)
         {

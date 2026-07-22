@@ -11,9 +11,11 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Liekinheitin.Application.Interfaces;
+using Liekinheitin.Application.Services;
 using Liekinheitin.CreativeTool.Models;
 using Liekinheitin.CreativeTool.Services;
 using Liekinheitin.CreativeTool.Shapes;
+using Liekinheitin.Infrastructure.Config;
 using Liekinheitin.Infrastructure.Network;
 using Microsoft.Win32;
 
@@ -31,7 +33,7 @@ namespace Liekinheitin.CreativeTool.Views
         private readonly PlaybackController _playbackController = new();
         private readonly ProjectFileService _projectFileService = new();
         private readonly SavedProjectsService _savedProjectsService;
-        private readonly ShowPlaybackEngine _playbackEngine = new();
+        private readonly ShowPlaybackEngine _playbackEngine;
         private readonly AudioPlaybackService _audioPlaybackService = new();
         private readonly IStatePublisher _statePublisher;
         private readonly DispatcherTimer _playbackTimer;
@@ -87,6 +89,7 @@ namespace Liekinheitin.CreativeTool.Views
 
             _savedProjectsService = new SavedProjectsService(_projectFileService);
 
+            _playbackEngine = new ShowPlaybackEngine(LoadRealEntityIds());
             _statePublisher = new UdpStatePublisher(RoutingHostIp, RoutingHostStatePort);
             _project = CreateDefaultProject();
 
@@ -1580,6 +1583,49 @@ namespace Liekinheitin.CreativeTool.Views
                 ? _selectedClip.Target.EntityIds
                 : null;
             LedPreview.ShowSelection(entityIds, IsEditingResize(), IsEditingRotate());
+        }
+
+        // Les identifiants 1 à 99 sont réservés aux appareils hors mur (projecteur statique,
+        // lyres motorisées) : le mur de LED lui-même commence à 100, par convention posée dans
+        // la documentation d'architecture du projet.
+        private const int WallEntityIdStart = 100;
+
+        /// <summary>
+        /// Charge patch.json et renvoie la liste triée des identifiants d'entité réels
+        /// appartenant au mur (à partir de <see cref="WallEntityIdStart"/>, en excluant donc le
+        /// projecteur statique et les lyres) — pour que <see cref="ShowPlaybackEngine"/> puisse
+        /// traduire ses ID de grille internes (0, 1, 2...) vers les vrais ID physiques attendus
+        /// par RoutingHost/le patch. Sans ce fichier (poste de développement sans copie du
+        /// patch, par exemple), l'appli continue de fonctionner en local avec les ID de grille
+        /// bruts.
+        /// </summary>
+        private static IReadOnlyList<int>? LoadRealEntityIds()
+        {
+            try
+            {
+                string patchPath = Path.GetFullPath(
+                    Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "patch.json"));
+
+                var patchService = new PatchService(new JsonPatchLoader());
+                patchService.LoadPatch(patchPath);
+
+                var ids = new List<int>();
+                foreach (var controller in patchService.Controllers)
+                {
+                    foreach (int universe in patchService.GetUniverses(controller.Id))
+                    {
+                        ids.AddRange(patchService.GetEntityIds(controller.Id, universe)
+                            .Where(id => id >= WallEntityIdStart));
+                    }
+                }
+
+                ids.Sort();
+                return ids;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private void PublishCurrentState(double currentTime)
