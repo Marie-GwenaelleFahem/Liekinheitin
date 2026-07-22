@@ -105,6 +105,16 @@ foreach (var motifId in new[] { "Snowfall", "Frost", "Fire", "ToxicLove", "FireI
     var state = engine.ComputeState(sampleTime, motifProject);
     Assert(state.Entities.Any(entity => entity.Channels.Any(channel => channel > 0)), $"Le motif {motifId} doit être visible.");
 }
+var finaleShapeTrack = finlandTemplate.Tracks.Single(track => track.Name.Contains("Formes de la finale"));
+Assert(finaleShapeTrack.Clips.Count == 5, "La finale doit contenir cinq formes chorégraphiées.");
+Assert(finaleShapeTrack.Clips.All(clip => clip.Target.Type == TargetType.Selection && clip.Target.EntityIds.Count > 100),
+    "Chaque forme finale doit posséder une silhouette lumineuse substantielle.");
+foreach (var time in new[] { 29.8, 32.3, 34.8, 36.4, 38.7 })
+{
+    var state = engine.ComputeState(time, finlandTemplate);
+    var litPixels = state.Entities.Count(entity => entity.Channels.Any(channel => channel > 0));
+    Assert(litPixels > 250, $"La finale doit rester visuellement dense à {time}s.");
+}
 Console.WriteLine("CreativeTool smoke tests: OK");
 
 static void Assert(bool condition, string message)

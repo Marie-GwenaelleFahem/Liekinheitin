@@ -81,7 +81,19 @@ public static class ShowTemplateService
                 },
                 new Track
                 {
-                    Name = "06 · Accents mesurés dans la musique",
+                    Name = "06 · Formes de la finale",
+                    Clips =
+                    {
+                        ShapeClip("Éclat radial", 29.51, 2.46, EffectType.Pulse, new RgbwColor(210, 245, 255, 100), 1, 2.39, RadialBurst(128, 128)),
+                        ShapeClip("Lances de glace", 31.97, 2.47, EffectType.Breath, new RgbwColor(80, 195, 255, 80), 1, 1.25, IceShards(128, 128)),
+                        ShapeClip("Couronne de flammes", 34.44, 3.29, EffectType.Chase, new RgbwColor(255, 92, 24, 0), 1, 1.45, FlameCrown(128, 128)),
+                        ShapeClip("Cœur toxique brisé", 36.08, 2.28, EffectType.Pulse, new RgbwColor(255, 25, 142, 0), 1, 2.39, BrokenHeart(128, 128)),
+                        ShapeClip("Emblème Liekinheitin", 38.36, 1.64, EffectType.Fade, new RgbwColor(255, 255, 255, 180), 1, 1, FinalEmblem(128, 128))
+                    }
+                },
+                new Track
+                {
+                    Name = "07 · Accents mesurés dans la musique",
                     Clips =
                     {
                         Impact("Accent neige", 8.36, new RgbwColor(205, 242, 255, 120)),
@@ -134,6 +146,109 @@ public static class ShowTemplateService
         }
     }
 
+    private static TimelineClip ShapeClip(string name, double start, double duration, EffectType effect, RgbwColor color, double intensity, double speed, List<int> entityIds)
+    {
+        var clip = Clip(name, start, duration, effect, color, intensity, speed);
+        clip.Target = new TargetSelection { Type = TargetType.Selection, EntityIds = entityIds };
+        return clip;
+    }
+
+    private static List<int> RadialBurst(int width, int height)
+    {
+        var ids = new HashSet<int>();
+        var cx = (width - 1) / 2.0;
+        var cy = (height - 1) / 2.0;
+        for (var ray = 0; ray < 16; ray++)
+        {
+            var angle = ray * Math.PI * 2 / 16;
+            AddLine(ids, cx + Math.Cos(angle) * 9, cy + Math.Sin(angle) * 9,
+                cx + Math.Cos(angle) * 58, cy + Math.Sin(angle) * 58, width, height, 2);
+        }
+        return ids.ToList();
+    }
+
+    private static List<int> IceShards(int width, int height)
+    {
+        var ids = new HashSet<int>();
+        for (var shard = 0; shard < 9; shard++)
+        {
+            var left = 3 + (shard * 15);
+            var right = Math.Min(width - 2, left + 12);
+            var tipX = left + 3 + ((shard * 7) % 7);
+            var tipY = 30 + ((shard * 23) % 72);
+            AddLine(ids, left, 0, tipX, tipY, width, height, 2);
+            AddLine(ids, right, 0, tipX, tipY, width, height, 2);
+            AddLine(ids, left, 0, right, 0, width, height, 1);
+        }
+        return ids.ToList();
+    }
+
+    private static List<int> FlameCrown(int width, int height)
+    {
+        var ids = new HashSet<int>();
+        var baseline = height - 10;
+        var flameWidth = width / 9.0;
+        for (var flame = 0; flame < 9; flame++)
+        {
+            var left = flame * flameWidth;
+            var right = (flame + 1) * flameWidth;
+            var peakX = (left + right) / 2;
+            var peakY = 35 + ((flame * 19) % 44);
+            AddLine(ids, left, baseline, peakX, peakY, width, height, 3);
+            AddLine(ids, peakX, peakY, right, baseline, width, height, 3);
+        }
+        AddLine(ids, 0, baseline, width - 1, baseline, width, height, 2);
+        return ids.ToList();
+    }
+
+    private static List<int> BrokenHeart(int width, int height)
+    {
+        var ids = new HashSet<int>();
+        for (var y = 12; y < height - 10; y++)
+        for (var x = 12; x < width - 12; x++)
+        {
+            var nx = (x - width / 2.0) / (width * 0.29);
+            var ny = (height / 2.0 - y) / (height * 0.29);
+            var equation = Math.Pow((nx * nx) + (ny * ny) - 1, 3) - (nx * nx * ny * ny * ny);
+            if (Math.Abs(equation) < 0.065) ids.Add((y * width) + x);
+        }
+        AddLine(ids, width * 0.52, height * 0.29, width * 0.45, height * 0.48, width, height, 2);
+        AddLine(ids, width * 0.45, height * 0.48, width * 0.55, height * 0.61, width, height, 2);
+        AddLine(ids, width * 0.55, height * 0.61, width * 0.48, height * 0.78, width, height, 2);
+        return ids.ToList();
+    }
+
+    private static List<int> FinalEmblem(int width, int height)
+    {
+        var ids = new HashSet<int>();
+        var cx = width / 2.0;
+        var cy = height / 2.0;
+        AddLine(ids, cx, 8, width - 16, cy, width, height, 3);
+        AddLine(ids, width - 16, cy, cx, height - 8, width, height, 3);
+        AddLine(ids, cx, height - 8, 16, cy, width, height, 3);
+        AddLine(ids, 16, cy, cx, 8, width, height, 3);
+        AddLine(ids, cx, 18, cx, height - 18, width, height, 2);
+        AddLine(ids, 24, cy, width - 24, cy, width, height, 2);
+        return ids.ToList();
+    }
+
+    private static void AddLine(HashSet<int> ids, double x1, double y1, double x2, double y2, int width, int height, int thickness)
+    {
+        var steps = Math.Max(1, (int)Math.Ceiling(Math.Max(Math.Abs(x2 - x1), Math.Abs(y2 - y1))));
+        for (var step = 0; step <= steps; step++)
+        {
+            var progress = step / (double)steps;
+            var x = (int)Math.Round(x1 + ((x2 - x1) * progress));
+            var y = (int)Math.Round(y1 + ((y2 - y1) * progress));
+            for (var dy = -thickness; dy <= thickness; dy++)
+            for (var dx = -thickness; dx <= thickness; dx++)
+            {
+                var px = x + dx;
+                var py = y + dy;
+                if (px >= 0 && px < width && py >= 0 && py < height) ids.Add((py * width) + px);
+            }
+        }
+    }
     private static TimelineClip Impact(string name, double start, RgbwColor color, double duration = 0.28)
         => Clip(name, start, duration, EffectType.Fade, color, 1, 1);
 
