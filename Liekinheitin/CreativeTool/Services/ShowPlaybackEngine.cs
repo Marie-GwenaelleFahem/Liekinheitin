@@ -99,7 +99,10 @@ namespace Liekinheitin.CreativeTool.Services
                     continue;
                 }
 
-                colors[targetEntityId.Value] = Scale(ComputeClipColor(clip, localTime, targetEntityId.Value, wallWidth, wallHeight), movementIntensity);
+                var clipColor = Scale(ComputeClipColor(clip, localTime, targetEntityId.Value, wallWidth, wallHeight), movementIntensity);
+                colors[targetEntityId.Value] = colors.TryGetValue(targetEntityId.Value, out var existingColor)
+                    ? Lighten(existingColor, clipColor)
+                    : clipColor;
             }
         }
 
@@ -130,11 +133,11 @@ namespace Liekinheitin.CreativeTool.Services
                 EffectType.Sparkle => Scale(clip.Color, SparkleLevel(localTime, entityId, clip.Speed) * intensity),
                 EffectType.Equalizer => Scale(clip.Color, EqualizerLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
                 EffectType.Ripple => Scale(clip.Color, RippleLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
-                EffectType.Snowfall => Scale(SnowfallColor(localTime, clip.Duration, entityId, wallWidth, wallHeight, clip.Speed), intensity),
-                EffectType.Frost => Scale(FrostColor(localTime, clip.Duration, entityId, wallWidth, wallHeight), intensity),
-                EffectType.Fire => Scale(FireColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity),
-                EffectType.ToxicHeart => Scale(ToxicHeartColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity),
-                EffectType.FireIce => Scale(FireIceColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity),
+                EffectType.Snowfall => Scale(SnowfallColor(localTime, clip.Duration, entityId, wallWidth, wallHeight, clip.Speed), intensity * SceneEnvelope(localTime, clip.Duration)),
+                EffectType.Frost => Scale(FrostColor(localTime, clip.Duration, entityId, wallWidth, wallHeight), intensity * SceneEnvelope(localTime, clip.Duration)),
+                EffectType.Fire => Scale(FireColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity * SceneEnvelope(localTime, clip.Duration)),
+                EffectType.ToxicHeart => Scale(ToxicHeartColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity * SceneEnvelope(localTime, clip.Duration)),
+                EffectType.FireIce => Scale(FireIceColor(localTime, entityId, wallWidth, wallHeight, clip.Speed), intensity * SceneEnvelope(localTime, clip.Duration)),
                 _ => Scale(clip.Color, intensity)
             };
 
@@ -446,6 +449,20 @@ namespace Liekinheitin.CreativeTool.Services
             return noise - Math.Floor(noise);
         }
 
+        private static double SceneEnvelope(double localTime, double duration)
+        {
+            var fadeDuration = Math.Min(1.2, Math.Max(0.12, duration * 0.2));
+            var fadeIn = Math.Clamp(localTime / fadeDuration, 0, 1);
+            var fadeOut = Math.Clamp((duration - localTime) / fadeDuration, 0, 1);
+            return Math.Min(fadeIn, fadeOut);
+        }
+
+        private static RgbwColor Lighten(RgbwColor background, RgbwColor foreground)
+            => new(
+                Math.Max(background.R, foreground.R),
+                Math.Max(background.G, foreground.G),
+                Math.Max(background.B, foreground.B),
+                Math.Max(background.W, foreground.W));
         private static RgbwColor Add(RgbwColor left, RgbwColor right)
             => new(
                 (byte)Math.Min(255, left.R + right.R),

@@ -695,8 +695,8 @@
                                 <Button Height="28" Margin="8,0,0,0" Padding="12,0"
                                         Background="#203A55" BorderBrush="#62E6FF"
                                         Click="OnCreateFinlandTemplateClick"
-                                        ToolTip="Créer une séquence artistique complète et modifiable"
-                                        Content="✦ CRÉER FINLAND 30S" />
+                                        ToolTip="Créer un clip musical Finland complet de 40 secondes"
+                                        Content="✦ CRÉER FINLAND 40S" />
                                 <Border Margin="10,0,0,0" Padding="8,3" CornerRadius="10" Background="#172B35" BorderBrush="#2C6B7E" BorderThickness="1">
                                     <TextBlock Foreground="#62E6FF" FontSize="10" Text="LIVE EDIT" />
                                 </Border>

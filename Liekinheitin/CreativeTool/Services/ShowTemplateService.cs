@@ -4,25 +4,41 @@ namespace Liekinheitin.CreativeTool.Services;
 
 public static class ShowTemplateService
 {
-    public static ShowProject CreateFinlandThirtySeconds()
+    public static ShowProject CreateFinlandFortySeconds()
     {
         return new ShowProject
         {
-            Name = "Liekinheitin — Fire, Ice & Toxic Love",
-            Duration = 30,
+            Name = "Liekinheitin — Fire, Ice & Toxic Love — 40s",
+            Duration = 40,
             WallWidth = 128,
             WallHeight = 128,
+            AudioPlaybackDuration = 40,
             AudioFadeOutDuration = 2,
             Tracks =
             {
-                new Track { Name = "Musique" },
+                new Track
+                {
+                    Name = "Musique",
+                    Clips =
+                    {
+                        new TimelineClip
+                        {
+                            Name = "Finland — extrait 40 secondes",
+                            StartTime = 0,
+                            Duration = 40,
+                            IsAudio = true,
+                            Target = new TargetSelection { Type = TargetType.Selection },
+                            Intensity = 0
+                        }
+                    }
+                },
                 new Track
                 {
                     Name = "01 · Le froid tombe",
                     Clips =
                     {
-                        Clip("Premiers flocons", 0, 8, EffectType.Snowfall, new RgbwColor(200, 235, 255, 100), 1, 0.72),
-                        Clip("Tempête qui s'accumule", 5.8, 4.2, EffectType.Snowfall, new RgbwColor(225, 245, 255, 120), 0.88, 1.35)
+                        Clip("Premiers flocons", 0, 10, EffectType.Snowfall, new RgbwColor(200, 235, 255, 100), 0.92, 0.58),
+                        Clip("Neige dense et tourbillon", 7.5, 5.5, EffectType.Snowfall, new RgbwColor(225, 245, 255, 120), 1, 1.22)
                     }
                 },
                 new Track
@@ -30,8 +46,8 @@ public static class ShowTemplateService
                     Name = "02 · La glace enferme",
                     Clips =
                     {
-                        Clip("Givre depuis les bords", 8, 4.5, EffectType.Frost, new RgbwColor(80, 180, 255, 80), 1, 1),
-                        Clip("Éclat de glace", 12.2, 0.32, EffectType.Fade, new RgbwColor(210, 245, 255, 140), 1, 1)
+                        Clip("Givre depuis les bords", 10.5, 6.5, EffectType.Frost, new RgbwColor(80, 180, 255, 80), 1, 0.82),
+                        Clip("Fissure lumineuse", 16.5, 0.8, EffectType.Fade, new RgbwColor(210, 245, 255, 140), 1, 1)
                     }
                 },
                 new Track
@@ -39,8 +55,8 @@ public static class ShowTemplateService
                     Name = "03 · Liekinheitin allume le feu",
                     Clips =
                     {
-                        Clip("Étincelle", 12.5, 0.45, EffectType.Fade, new RgbwColor(255, 210, 80, 60), 1, 1),
-                        Clip("Flammes montantes", 12.7, 6.1, EffectType.Fire, new RgbwColor(255, 70, 18, 0), 1, 0.9)
+                        Clip("Première étincelle", 16.9, 0.9, EffectType.Fade, new RgbwColor(255, 210, 80, 60), 1, 1),
+                        Clip("Flammes montantes", 17.3, 9.5, EffectType.Fire, new RgbwColor(255, 70, 18, 0), 1, 0.82)
                     }
                 },
                 new Track
@@ -48,8 +64,8 @@ public static class ShowTemplateService
                     Name = "04 · Amour toxique",
                     Clips =
                     {
-                        Clip("Cœur empoisonné", 18.4, 5.8, EffectType.ToxicHeart, new RgbwColor(255, 25, 130, 0), 1, 1.05),
-                        Clip("Pulsation dangereuse", 21.2, 3, EffectType.ToxicHeart, new RgbwColor(125, 255, 40, 0), 0.86, 1.7)
+                        Clip("Cœur attirant", 25.5, 5.5, EffectType.ToxicHeart, new RgbwColor(255, 25, 130, 0), 0.86, 0.92),
+                        Clip("Cœur contaminé", 29.2, 5.8, EffectType.ToxicHeart, new RgbwColor(125, 255, 40, 0), 1, 1.48)
                     }
                 },
                 new Track
@@ -57,18 +73,19 @@ public static class ShowTemplateService
                     Name = "05 · Finale Eurovision",
                     Clips =
                     {
-                        Clip("Feu contre glace", 24, 6, EffectType.FireIce, new RgbwColor(255, 255, 255, 0), 1, 1.15)
+                        Clip("Feu contre glace", 34, 6, EffectType.FireIce, new RgbwColor(255, 255, 255, 0), 1, 1.08)
                     }
                 },
                 new Track
                 {
-                    Name = "06 · Accents",
+                    Name = "06 · Accents musicaux",
                     Clips =
                     {
-                        Clip("Impact glace", 8, 0.22, EffectType.Fade, new RgbwColor(210, 245, 255, 120), 1, 1),
-                        Clip("Impact feu", 12.5, 0.22, EffectType.Fade, new RgbwColor(255, 190, 65, 80), 1, 1),
-                        Clip("Impact cœur", 18.4, 0.18, EffectType.Fade, new RgbwColor(255, 30, 125, 60), 1, 1),
-                        Clip("Flash final", 29.35, 0.28, EffectType.Fade, new RgbwColor(255, 255, 255, 180), 1, 1)
+                        Clip("Impact glace", 10.5, 0.28, EffectType.Fade, new RgbwColor(210, 245, 255, 120), 1, 1),
+                        Clip("Impact feu", 17.2, 0.3, EffectType.Fade, new RgbwColor(255, 190, 65, 80), 1, 1),
+                        Clip("Impact cœur", 25.5, 0.24, EffectType.Fade, new RgbwColor(255, 30, 125, 60), 1, 1),
+                        Clip("Collision", 34, 0.32, EffectType.Fade, new RgbwColor(255, 255, 255, 150), 1, 1),
+                        Clip("Flash final", 39.45, 0.35, EffectType.Fade, new RgbwColor(255, 255, 255, 180), 1, 1)
                     }
                 }
             }

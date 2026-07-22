@@ -14,6 +14,8 @@ namespace Liekinheitin.CreativeTool.Models
 
         public string? AudioFilePath { get; set; }
 
+        public double? AudioPlaybackDuration { get; set; }
+
         public double AudioVolume { get; set; } = 1.0;
 
         public double AudioFadeOutDuration { get; set; }

@@ -81,16 +81,16 @@ foreach (var showPath in Directory.EnumerateFiles(animationsFolder, "*.lshow"))
             $"{Path.GetFileName(showPath)} doit produire un état complet à {time:0.##} s.");
     }
 }
-var finlandTemplate = ShowTemplateService.CreateFinlandThirtySeconds();
-Assert(finlandTemplate.Duration == 30, "Le modèle Finland doit durer 30 secondes.");
+var finlandTemplate = ShowTemplateService.CreateFinlandFortySeconds();
+Assert(finlandTemplate.Duration == 40, "Le modèle Finland doit durer 40 secondes.");
 Assert(finlandTemplate.Tracks.Count >= 5, "Le modèle Finland doit proposer plusieurs couches artistiques.");
 Assert(finlandTemplate.Tracks.SelectMany(track => track.Clips).Count() >= 12, "Le modèle Finland doit être réellement monté.");
-foreach (var time in Enumerable.Range(0, 31).Select(second => (double)second))
+foreach (var time in Enumerable.Range(0, 41).Select(second => (double)second))
 {
     var state = engine.ComputeState(time, finlandTemplate);
     Assert(state.Entities.Count == 128 * 128, $"Le modèle Finland doit produire une image complète à {time}s.");
 }
-foreach (var time in new[] { 1.0, 6.5, 10.0, 15.0, 20.0, 26.0, 29.5 })
+foreach (var time in new[] { 1.0, 8.0, 12.0, 18.0, 23.0, 28.0, 32.0, 36.0, 39.5 })
 {
     var state = engine.ComputeState(time, finlandTemplate);
     var litPixels = state.Entities.Count(entity => entity.Channels.Any(channel => channel > 0));

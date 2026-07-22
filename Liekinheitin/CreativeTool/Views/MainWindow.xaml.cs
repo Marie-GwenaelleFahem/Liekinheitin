@@ -349,7 +349,9 @@ namespace Liekinheitin.CreativeTool.Views
                 return;
             }
 
-            audioClip.Duration = duration;
+            audioClip.Duration = _project.AudioPlaybackDuration is { } playbackDuration
+                ? Math.Min(duration, playbackDuration)
+                : duration;
             EnsureProjectDurationIncludesClips();
             TimelineControl.Redraw();
         }
@@ -1056,10 +1058,17 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             _playbackController.Stop();
-            LoadProjectIntoUi(ShowTemplateService.CreateFinlandThirtySeconds(), null, markDirty: true);
+            var project = ShowTemplateService.CreateFinlandFortySeconds();
+            var bundledAudioPath = Path.Combine(AppContext.BaseDirectory, "Animations", "Finland - Liekinheitin.mp3");
+            if (File.Exists(bundledAudioPath))
+            {
+                project.AudioFilePath = bundledAudioPath;
+            }
+
+            LoadProjectIntoUi(project, null, markDirty: true);
             TimelineControl.SetPlayhead(0);
             RenderPreview(0);
-            ShowActionFeedback("Séquence Finland 30s créée — ajoute maintenant ta musique");
+            ShowActionFeedback("Séquence Finland 40s créée et musique raccordée");
         }
         private void OnNewProjectClick(object sender, RoutedEventArgs e)
         {
@@ -1288,6 +1297,11 @@ namespace Liekinheitin.CreativeTool.Views
 
         private double GetAudioClipDuration()
         {
+            if (_project.AudioPlaybackDuration is { } playbackDuration && playbackDuration > 0)
+            {
+                return playbackDuration;
+            }
+
             if (_audioPlaybackService.DurationSeconds is { } duration && duration > 0)
             {
                 return duration;

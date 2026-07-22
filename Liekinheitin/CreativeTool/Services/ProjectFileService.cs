@@ -46,6 +46,10 @@ namespace Liekinheitin.CreativeTool.Services
             project.WallWidth = Math.Clamp(project.WallWidth, 1, 512);
             project.WallHeight = Math.Clamp(project.WallHeight, 1, 512);
             project.AudioVolume = Math.Clamp(project.AudioVolume, 0, 1);
+            if (project.AudioPlaybackDuration is { } audioPlaybackDuration)
+            {
+                project.AudioPlaybackDuration = Math.Clamp(audioPlaybackDuration, 0.05, project.Duration);
+            }
             project.AudioFadeOutDuration = Math.Max(0, project.AudioFadeOutDuration);
             project.Tracks ??= new List<Track>();
             project.MediaOverlays ??= new List<MediaOverlayClip>();
