@@ -374,6 +374,45 @@
                         </ScrollViewer>
                     </TabItem>
 
+                    <TabItem Header="LYRES">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Foreground="#F4F4F4" FontSize="16" FontWeight="SemiBold" Text="Pilotage direct des lyres" />
+                                <TextBlock Margin="0,4,0,16" Foreground="#8195AE" FontSize="10" TextWrapping="Wrap"
+                                           Text="Réglez une lyre ou les quatre, puis envoyez immédiatement la commande DMX." />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Appareil" />
+                                <ComboBox x:Name="LyreTargetComboBox" Margin="0,4,0,12" SelectedIndex="0">
+                                    <ComboBoxItem Content="Les 4 lyres" Tag="0" />
+                                    <ComboBoxItem Content="Lyre 1" Tag="2" />
+                                    <ComboBoxItem Content="Lyre 2" Tag="3" />
+                                    <ComboBoxItem Content="Lyre 3" Tag="4" />
+                                    <ComboBoxItem Content="Lyre 4" Tag="5" />
+                                </ComboBox>
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Pan" />
+                                <Slider x:Name="LyrePanSlider" Margin="0,4,0,12" Minimum="0" Maximum="255" Value="128" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Tilt" />
+                                <Slider x:Name="LyreTiltSlider" Margin="0,4,0,12" Minimum="0" Maximum="255" Value="118" IsSnapToTickEnabled="True" TickFrequency="1" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Vitesse" />
+                                <Slider x:Name="LyreSpeedSlider" Margin="0,4,0,12" Minimum="0" Maximum="255" Value="42" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Intensité" />
+                                <Slider x:Name="LyreDimmerSlider" Margin="0,4,0,12" Minimum="0" Maximum="255" Value="220" />
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Strobe" />
+                                <Slider x:Name="LyreStrobeSlider" Margin="0,4,0,16" Minimum="0" Maximum="255" Value="0" />
+
+                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Couleur" />
+                                <UniformGrid Columns="2" Margin="0,6,0,14">
+                                    <RadioButton x:Name="LyreRedRadio" GroupName="LyreColor" IsChecked="True" Content="Rouge" Foreground="#FF766F" />
+                                    <RadioButton x:Name="LyreOrangeRadio" GroupName="LyreColor" Content="Orange" Foreground="#FFAE58" />
+                                </UniformGrid>
+
+                                <Button Height="36" Margin="0,0,0,8" Background="#18394A" BorderBrush="#3D9CC0"
+                                        Click="OnSendLyreCommandClick" Content="ENVOYER AUX LYRES" />
+                                <Button Height="32" Click="OnBlackoutLyresClick" Content="ÉTEINDRE LES LYRES" />
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
                     <TabItem x:Name="ShapesTab" Header="FORMES ORGANIQUES">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       Padding="0,12,0,0">
