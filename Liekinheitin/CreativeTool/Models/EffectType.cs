@@ -16,6 +16,13 @@ namespace Liekinheitin.CreativeTool.Models
         HeartbeatTrace,
         FallingEmbers,
         WhiteFallingLines,
-        ContractExplodeRipple
+        ContractExplodeRipple,
+        SweetsBite,
+        RedDiagonalLines,
+        RoseBloomExplosion,
+        MoonKissSilhouettes,
+        BloodText,
+        BittenHeart,
+        BlackDrip
     }
 }

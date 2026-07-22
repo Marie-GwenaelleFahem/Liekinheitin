@@ -172,6 +172,10 @@ namespace Liekinheitin.CreativeTool.Services
                 ApplyWhiteFallingLines(colors, clip, localTime, wallWidth, wallHeight);
                 return;
             }
+            if (CinematicEffectsRenderer.TryApply(colors, clip, localTime, wallWidth, wallHeight))
+            {
+                return;
+            }
 
             var movementOffset = ResolveMovementOffset(clip, localTime);
             var movementIntensity = MovementIntensity(clip, localTime);

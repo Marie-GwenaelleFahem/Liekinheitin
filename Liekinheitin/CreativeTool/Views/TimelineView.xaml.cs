@@ -613,6 +613,13 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.FallingEmbers => Color.FromRgb(236, 92, 24),
                 EffectType.WhiteFallingLines => Color.FromRgb(214, 228, 244),
                 EffectType.ContractExplodeRipple => Color.FromRgb(44, 126, 224),
+                EffectType.SweetsBite => Color.FromRgb(234, 143, 72),
+                EffectType.RedDiagonalLines => Color.FromRgb(178, 28, 38),
+                EffectType.RoseBloomExplosion => Color.FromRgb(218, 24, 52),
+                EffectType.MoonKissSilhouettes => Color.FromRgb(224, 220, 184),
+                EffectType.BloodText => Color.FromRgb(136, 8, 20),
+                EffectType.BittenHeart => Color.FromRgb(208, 16, 36),
+                EffectType.BlackDrip => Color.FromRgb(30, 30, 35),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }

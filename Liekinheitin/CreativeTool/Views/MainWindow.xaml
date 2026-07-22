@@ -313,6 +313,13 @@
                                     <ComboBoxItem Content="Braises descendantes" Tag="FallingEmbers" />
                                     <ComboBoxItem Content="Lignes blanches descendantes" Tag="WhiteFallingLines" />
                                     <ComboBoxItem Content="Ondulation — contraction et explosion" Tag="ContractExplodeRipple" />
+                                    <ComboBoxItem Content="Sucreries croquées" Tag="SweetsBite" />
+                                    <ComboBoxItem Content="Lignes rouges diagonales" Tag="RedDiagonalLines" />
+                                    <ComboBoxItem Content="Rose — ouverture et explosion" Tag="RoseBloomExplosion" />
+                                    <ComboBoxItem Content="Silhouettes sous la lune" Tag="MoonKissSilhouettes" />
+                                    <ComboBoxItem Content="Texte rouge sang" Tag="BloodText" />
+                                    <ComboBoxItem Content="Cœur croqué" Tag="BittenHeart" />
+                                    <ComboBoxItem Content="Liquide noir dégoulinant" Tag="BlackDrip" />
                                 </ComboBox>
 
                                 <Grid Margin="0,0,0,8">
