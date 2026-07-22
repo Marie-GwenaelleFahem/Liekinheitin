@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Windows.Media;
 using Liekinheitin.Application.Interfaces;
@@ -13,12 +14,10 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly SceneManager _scene;
         private readonly WallLayout _layout;
         private readonly IStatePublisher _publisher;
+        private readonly FixtureManager _fixtures;
         private readonly Timer _publishTimer;
         private int _tickCount;
-        private const int FullResyncEveryNTicks = 80; // ~2s à 40Hz
-        public Timeline Timeline { get; } = new();
-        public TimelinePlayer TimelinePlayer { get; }
-        public TimelineViewModel TimelineViewModel { get; }
+        private const int FullResyncEveryNTicks = 80;
 
         public BrushTool Brush { get; }
         public SceneManager Scene => _scene;
@@ -28,19 +27,27 @@ namespace Liekinheitin.CreativeTool.ViewModels
         public ShapeListViewModel ShapeList { get; } = new();
         public ColumnFillTool ColumnFill { get; }
         public ShapeInspectorViewModel ShapeInspector { get; }
+        public FixtureManager Fixtures => _fixtures;
+        public FixtureControlViewModel FixtureControl { get; }
+        public Timeline Timeline { get; } = new();
+        public TimelinePlayer TimelinePlayer { get; }
+        public TimelineViewModel TimelineViewModel { get; }
 
-        public MainViewModel(SceneManager scene, WallLayout layout, BrushTool brush, IStatePublisher publisher)
+        public MainViewModel(SceneManager scene, WallLayout layout, BrushTool brush, IStatePublisher publisher, FixtureManager fixtures)
         {
             _scene = scene;
             _layout = layout;
             _publisher = publisher;
+            _fixtures = fixtures;
             Brush = brush;
 
             ColorPicker = new ColorPickerViewModel(brush);
             ColumnFill = new ColumnFillTool(scene);
             ColumnList = new ColumnListViewModel(layout.Columns);
             ShapeInspector = new ShapeInspectorViewModel(scene);
-            TimelinePlayer = new TimelinePlayer(Timeline, scene);
+            FixtureControl = new FixtureControlViewModel(fixtures);
+
+            TimelinePlayer = new TimelinePlayer(Timeline, scene, fixtures);
             TimelineViewModel = new TimelineViewModel(Timeline, TimelinePlayer, scene);
 
             _publishTimer = new Timer(_ => PublishTick(), null, 0, 25);
@@ -62,9 +69,13 @@ namespace Liekinheitin.CreativeTool.ViewModels
             _tickCount++;
             bool fullResync = _tickCount % FullResyncEveryNTicks == 0;
 
-            var entities = fullResync
+            var gridEntities = fullResync
                 ? CanvasStateBuilder.Build(_scene.Display, _layout)
                 : CanvasStateBuilder.BuildDelta(_scene.Display, _layout);
+
+            var entities = new List<Entity>(gridEntities.Count + 5);
+            entities.AddRange(gridEntities);
+            entities.AddRange(_fixtures.BuildEntities());
 
             if (entities.Count == 0) return;
             _publisher.Publish(new State { Entities = entities });

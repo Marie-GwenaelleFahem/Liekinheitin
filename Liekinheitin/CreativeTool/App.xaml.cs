@@ -15,8 +15,9 @@ namespace Liekinheitin.CreativeTool
             var layout = new WallLayout(columns: 128, rows: 128);
             var scene = new SceneManager(layout);
             var brush = new BrushTool(scene);
+            var fixtures = new FixtureManager();
 
-            var mainViewModel = new MainViewModel(scene, layout, brush, statePublisher);
+            var mainViewModel = new MainViewModel(scene, layout, brush, statePublisher, fixtures);
 
             var mainWindow = new MainWindow { DataContext = mainViewModel };
             mainWindow.Show();

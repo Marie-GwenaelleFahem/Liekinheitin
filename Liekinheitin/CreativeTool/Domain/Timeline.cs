@@ -5,11 +5,6 @@ using System.Windows.Media;
 
 namespace Liekinheitin.CreativeTool.Domain
 {
-    /// <summary>
-    /// L'état d'une forme à un instant précis. Toutes les propriétés interpolables
-    /// (numériques + couleur) ; Type et Id ne changent jamais dans le temps pour une forme
-    /// donnée, ils ne sont donc pas répétés ici mais dans PlacedShape.
-    /// </summary>
     public sealed class ShapeKeyframe
     {
         public double TimeSeconds { get; init; }
@@ -21,14 +16,12 @@ namespace Liekinheitin.CreativeTool.Domain
         public Color Color { get; init; }
     }
 
-    /// <summary>La trajectoire complète d'une forme dans le temps : ses keyframes triées.</summary>
     public sealed class ShapeTrack
     {
         public Guid ShapeId { get; init; }
         public ShapeType Type { get; init; }
         public List<ShapeKeyframe> Keyframes { get; } = new();
 
-        /// <summary>Ajoute ou remplace la keyframe à cet instant (une seule par instant).</summary>
         public void SetKeyframe(ShapeKeyframe keyframe)
         {
             Keyframes.RemoveAll(k => Math.Abs(k.TimeSeconds - keyframe.TimeSeconds) < 0.001);
@@ -36,11 +29,6 @@ namespace Liekinheitin.CreativeTool.Domain
             Keyframes.Sort((a, b) => a.TimeSeconds.CompareTo(b.TimeSeconds));
         }
 
-        /// <summary>
-        /// Calcule l'état interpolé de la forme à un instant donné. Avant la première
-        /// keyframe : reste figée sur la première. Après la dernière : reste figée sur la
-        /// dernière. Entre deux : interpolation linéaire de toutes les propriétés.
-        /// </summary>
         public ShapeKeyframe? Evaluate(double timeSeconds)
         {
             if (Keyframes.Count == 0) return null;
@@ -68,7 +56,7 @@ namespace Liekinheitin.CreativeTool.Domain
                 };
             }
 
-            return Keyframes[^1]; // filet de sécurité, ne devrait pas être atteint
+            return Keyframes[^1];
         }
 
         private static double Lerp(double a, double b, double t) => a + (b - a) * t;
@@ -79,18 +67,20 @@ namespace Liekinheitin.CreativeTool.Domain
             (byte)Math.Round(Lerp(a.B, b.B, t)));
     }
 
-    /// <summary>
-    /// L'animation complète : une trajectoire indépendante par forme. Une forme absente
-    /// de la timeline (jamais keyframée) garde sa position/couleur figée, gérée par
-    /// SceneManager comme avant, en dehors de toute lecture d'animation.
-    /// </summary>
     public sealed class Timeline
     {
         public List<ShapeTrack> Tracks { get; } = new();
+        public List<FixtureTrack> FixtureTracks { get; } = new();
 
-        public double DurationSeconds => Tracks.Count == 0
-            ? 0
-            : Tracks.SelectMany(t => t.Keyframes).Select(k => k.TimeSeconds).DefaultIfEmpty(0).Max();
+        public double DurationSeconds
+        {
+            get
+            {
+                double shapeMax = Tracks.SelectMany(t => t.Keyframes).Select(k => k.TimeSeconds).DefaultIfEmpty(0).Max();
+                double fixtureMax = FixtureTracks.SelectMany(t => t.Keyframes).Select(k => k.TimeSeconds).DefaultIfEmpty(0).Max();
+                return Math.Max(shapeMax, fixtureMax);
+            }
+        }
 
         public ShapeTrack GetOrCreateTrack(Guid shapeId, ShapeType type)
         {
@@ -104,5 +94,16 @@ namespace Liekinheitin.CreativeTool.Domain
         }
 
         public ShapeTrack? FindTrack(Guid shapeId) => Tracks.FirstOrDefault(t => t.ShapeId == shapeId);
+
+        public FixtureTrack GetOrCreateFixtureTrack(int entityId)
+        {
+            var track = FixtureTracks.Find(t => t.EntityId == entityId);
+            if (track is null)
+            {
+                track = new FixtureTrack { EntityId = entityId };
+                FixtureTracks.Add(track);
+            }
+            return track;
+        }
     }
 }

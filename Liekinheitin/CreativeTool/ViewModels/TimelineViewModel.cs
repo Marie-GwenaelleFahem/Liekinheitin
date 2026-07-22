@@ -9,9 +9,15 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly Timeline _timeline;
         private readonly TimelinePlayer _player;
         private readonly SceneManager _scene;
-        private double _totalDuration = 10.0; // durée totale de travail, extensible par l'utilisateur
+        private double _totalDuration = 10.0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
+        /// <summary>Déclenché après tout ajout de keyframe (forme ou appareil) — signal
+        /// pour que la vue redessine les pistes.</summary>
+        public event Action? KeyframeAdded;
+
+        public Timeline Timeline => _timeline;
+        public TimelinePlayer Player => _player;
 
         public TimelineViewModel(Timeline timeline, TimelinePlayer player, SceneManager scene)
         {
@@ -25,10 +31,6 @@ namespace Liekinheitin.CreativeTool.ViewModels
             };
         }
 
-        /// <summary>
-        /// Plage du curseur : le plus grand entre la durée totale de travail (éditable) et
-        /// la dernière keyframe posée (au cas où l'utilisateur pose une keyframe au-delà).
-        /// </summary>
         public double Duration => Math.Max(_totalDuration, _player.DurationSeconds);
 
         public double TotalDuration
@@ -72,8 +74,43 @@ namespace Liekinheitin.CreativeTool.ViewModels
                 Scale = shape.Scale,
                 Color = shape.Color,
             });
-
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Duration)));
+            KeyframeAdded?.Invoke();
+        }
+
+        public void AddProjectorKeyframe(ProjectorViewModel projector)
+        {
+            var track = _timeline.GetOrCreateFixtureTrack(1);
+            track.SetKeyframe(new FixtureKeyframe
+            {
+                TimeSeconds = CurrentTime,
+                R = projector.R,
+                G = projector.G,
+                B = projector.B,
+                W = projector.W,
+            });
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Duration)));
+            KeyframeAdded?.Invoke();
+        }
+
+        public void AddMovingHeadKeyframe(MovingHeadViewModel head)
+        {
+            var track = _timeline.GetOrCreateFixtureTrack(head.EntityId);
+            track.SetKeyframe(new FixtureKeyframe
+            {
+                TimeSeconds = CurrentTime,
+                Pan = head.Pan,
+                Tilt = head.Tilt,
+                Speed = head.Speed,
+                Dimming = head.Dimming,
+                Strobe = head.Strobe,
+                R = head.R,
+                G = head.G,
+                B = head.B,
+                W = head.W,
+            });
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(Duration)));
+            KeyframeAdded?.Invoke();
         }
     }
 }

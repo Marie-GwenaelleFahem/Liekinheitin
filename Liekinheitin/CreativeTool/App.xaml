@@ -10,5 +10,6 @@
 
         <converters:ColorToBrushConverter x:Key="ColorToBrush" />
         <converters:BoolToVisibilityConverter x:Key="BoolToVis" />
+        <converters:InverseBoolToVisibilityConverter x:Key="BoolToVisInverse" />
     </Application.Resources>
 </Application>

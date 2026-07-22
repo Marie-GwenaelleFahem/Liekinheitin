@@ -7,9 +7,10 @@ namespace Liekinheitin.CreativeTool.Domain
     {
         private readonly Timeline _timeline;
         private readonly SceneManager _scene;
+        private readonly FixtureManager _fixtures;
         private readonly DispatcherTimer _timer;
-        private const int TickIntervalMs = 25; // ~40Hz
-        private const int SliderNotifyEveryNTicks = 3; // ~13Hz, slider uniquement
+        private const int TickIntervalMs = 25;
+        private const int SliderNotifyEveryNTicks = 3;
 
         private int _tickCount;
 
@@ -17,18 +18,14 @@ namespace Liekinheitin.CreativeTool.Domain
         public double CurrentTimeSeconds { get; private set; }
         public double DurationSeconds => _timeline.DurationSeconds;
 
-        /// <summary>Déclenché à CHAQUE tick (~40Hz) — pour rafraîchir la grille à l'écran,
-        /// au même rythme que le déplacement à la souris.</summary>
         public event Action? Ticked;
-
-        /// <summary>Déclenché à fréquence réduite (~13Hz) et à chaque Seek — pour le slider
-        /// et le texte du temps écoulé, qui n'ont pas besoin de plus.</summary>
         public event Action? TimeChanged;
 
-        public TimelinePlayer(Timeline timeline, SceneManager scene)
+        public TimelinePlayer(Timeline timeline, SceneManager scene, FixtureManager fixtures)
         {
             _timeline = timeline;
             _scene = scene;
+            _fixtures = fixtures;
             _timer = new DispatcherTimer(DispatcherPriority.Render)
             {
                 Interval = TimeSpan.FromMilliseconds(TickIntervalMs)
@@ -73,11 +70,11 @@ namespace Liekinheitin.CreativeTool.Domain
             }
 
             ApplyCurrentTime();
-            Ticked?.Invoke(); // grille : à chaque tick, pleine fréquence
+            Ticked?.Invoke();
 
             _tickCount++;
             if (_tickCount % SliderNotifyEveryNTicks == 0 || !IsPlaying)
-                TimeChanged?.Invoke(); // slider : fréquence réduite
+                TimeChanged?.Invoke();
         }
 
         private void ApplyCurrentTime()
@@ -86,8 +83,14 @@ namespace Liekinheitin.CreativeTool.Domain
             {
                 var kf = track.Evaluate(CurrentTimeSeconds);
                 if (kf is null) continue;
-
                 _scene.ApplyShapeState(track.ShapeId, kf.X, kf.Y, kf.BaseWidth, kf.BaseHeight, kf.Scale, kf.Color);
+            }
+
+            foreach (var track in _timeline.FixtureTracks)
+            {
+                var kf = track.Evaluate(CurrentTimeSeconds);
+                if (kf is null) continue;
+                _fixtures.ApplyKeyframe(track.EntityId, kf);
             }
         }
 
