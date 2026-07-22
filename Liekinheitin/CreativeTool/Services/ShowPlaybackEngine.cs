@@ -26,7 +26,18 @@ namespace Liekinheitin.CreativeTool.Services
             var totalPixels = Math.Max(0, project.WallWidth * project.WallHeight);
             var masterLevel = ResolveMasterLevel(currentTime, project);
 
-            foreach (var track in project.Tracks.Where(track => !track.IsMuted))
+            var activeTracks = project.Tracks.Where(track => !track.IsMuted).ToList();
+            var hasActiveFullscreenRipple = activeTracks
+                .SelectMany(track => track.Clips)
+                .Any(clip => !clip.IsAudio
+                    && !clip.IsMedia
+                    && !clip.IsHidden
+                    && clip.EffectType == EffectType.ClickRipple
+                    && IsClipActive(clip, currentTime));
+
+            foreach (var track in activeTracks
+                .Where(track => !hasActiveFullscreenRipple || !IsMaleVoiceTrack(track))
+                .OrderBy(track => VisualLayerPriority(track, hasActiveFullscreenRipple)))
             {
                 foreach (var clip in track.Clips.Where(clip => !clip.IsAudio && !clip.IsMedia && !clip.IsHidden && IsClipActive(clip, currentTime)))
                 {
@@ -48,6 +59,25 @@ namespace Liekinheitin.CreativeTool.Services
             }
 
             return state;
+        }
+
+        private static bool IsMaleVoiceTrack(Track track)
+            => track.Name.Contains("Voix", StringComparison.OrdinalIgnoreCase)
+                && track.Name.Contains("homme", StringComparison.OrdinalIgnoreCase);
+
+        private static int VisualLayerPriority(Track track, bool hasActiveFullscreenRipple)
+        {
+            if (!hasActiveFullscreenRipple)
+            {
+                return 0;
+            }
+
+            if (track.Name.Contains("Violon", StringComparison.OrdinalIgnoreCase))
+            {
+                return 100;
+            }
+
+            return track.Name.Contains("Le Juge", StringComparison.OrdinalIgnoreCase) ? 50 : 0;
         }
 
         /// <summary>
@@ -132,6 +162,17 @@ namespace Liekinheitin.CreativeTool.Services
             int wallHeight)
         {
             var localTime = currentTime - clip.StartTime;
+            if (clip.EffectType == EffectType.FallingEmbers)
+            {
+                ApplyFallingEmbers(colors, clip, localTime, wallWidth, wallHeight);
+                return;
+            }
+            if (clip.EffectType == EffectType.WhiteFallingLines)
+            {
+                ApplyWhiteFallingLines(colors, clip, localTime, wallWidth, wallHeight);
+                return;
+            }
+
             var movementOffset = ResolveMovementOffset(clip, localTime);
             var movementIntensity = MovementIntensity(clip, localTime);
             var targets = ResolveTargets(clip, totalPixels).ToList();
@@ -151,6 +192,152 @@ namespace Liekinheitin.CreativeTool.Services
 
         private static bool IsClipActive(TimelineClip clip, double currentTime)
             => currentTime >= clip.StartTime && currentTime <= clip.EndTime;
+
+        private static void ApplyFallingEmbers(
+            IDictionary<int, RgbwColor> colors,
+            TimelineClip clip,
+            double localTime,
+            int wallWidth,
+            int wallHeight)
+        {
+            var progress = Math.Clamp(localTime / Math.Max(0.001, clip.Duration), 0, 1);
+            var seed = (int)Math.Round(clip.StartTime * 1000) ^ 0x51ED270B;
+            const int particleCount = 18;
+
+            for (var index = 0; index < particleCount; index++)
+            {
+                var originX = Random01(seed, index, 1) * (wallWidth - 1);
+                var verticalPhase = Random01(seed, index, 2) * 1.28;
+                var fallSpeed = 0.16 + (Random01(seed, index, 3) * 0.12);
+                var verticalPosition = (verticalPhase + (progress * fallSpeed)) % 1.28;
+                var anchorY = (int)Math.Round((verticalPosition * (wallHeight + 30)) - 15);
+                var oscillation = Math.Sin((progress * Math.PI * 1.15) + (index * 1.37));
+                var anchorX = (int)Math.Round(originX + (oscillation * (6 + (Random01(seed, index, 4) * 8))));
+                var featherLength = 7 + (int)Math.Round(Random01(seed, index, 5) * 9);
+                var lean = (Random01(seed, index, 6) - 0.5) * 0.72;
+                var flicker = 0.72 + (0.28 * Random01(seed + (int)(localTime * 25), index, 7));
+                var screenFade = Math.Clamp(Math.Min(verticalPosition / 0.09, (1.28 - verticalPosition) / 0.12), 0, 1);
+                var level = clip.Intensity * flicker * screenFade;
+
+                for (var segment = 0; segment < featherLength; segment++)
+                {
+                    var ratio = segment / (double)Math.Max(1, featherLength - 1);
+                    var curve = Math.Sin((ratio * Math.PI * 1.35) + (index * 0.41)) * 2.1;
+                    var x = (int)Math.Round(anchorX + (lean * segment) + curve);
+                    var y = anchorY - segment;
+                    if (x < 0 || x >= wallWidth || y < 0 || y >= wallHeight)
+                    {
+                        continue;
+                    }
+
+                    var bodyFade = Math.Pow(1 - (ratio * 0.72), 0.8) * level;
+                    var color = ratio switch
+                    {
+                        < 0.20 => new RgbwColor(255, 214, 72, 28),
+                        < 0.52 => new RgbwColor(255, 126, 15, 2),
+                        < 0.78 => new RgbwColor(238, 58, 7, 0),
+                        _ => new RgbwColor(148, 22, 4, 0)
+                    };
+                    colors[(y * wallWidth) + x] = Scale(color, bodyFade);
+
+                    var width = ratio < 0.62 ? 1 : 0;
+                    if (width > 0 && x + 1 < wallWidth)
+                    {
+                        colors[(y * wallWidth) + x + 1] = Scale(color, bodyFade * 0.72);
+                    }
+
+                    if (segment > 2 && segment % 3 == 0)
+                    {
+                        var barbX = x + (index % 2 == 0 ? -2 : 2);
+                        var barbY = y + 1;
+                        if (barbX >= 0 && barbX < wallWidth && barbY >= 0 && barbY < wallHeight)
+                        {
+                            colors[(barbY * wallWidth) + barbX] = Scale(new RgbwColor(255, 82, 8, 0), bodyFade * 0.58);
+                        }
+                    }
+                }
+            }
+        }
+
+        private static double Random01(int seed, int particle, int channel)
+        {
+            unchecked
+            {
+                uint value = (uint)(seed + (particle * 374761393) + (channel * 668265263));
+                value = (value ^ (value >> 13)) * 1274126177u;
+                value ^= value >> 16;
+                return value / (double)uint.MaxValue;
+            }
+        }
+
+        private static void ApplyWhiteFallingLines(
+            IDictionary<int, RgbwColor> colors,
+            TimelineClip clip,
+            double localTime,
+            int wallWidth,
+            int wallHeight)
+        {
+            var progress = Math.Clamp(localTime / Math.Max(0.001, clip.Duration), 0, 1);
+            var seed = (int)Math.Round(clip.StartTime * 1000) ^ 0x2374A91;
+            const int lineCount = 27;
+
+            for (var index = 0; index < lineCount; index++)
+            {
+                var x = (int)Math.Round(Random01(seed, index, 1) * (wallWidth - 1));
+                var phase = Random01(seed, index, 2);
+                var speed = 0.82 + (Random01(seed, index, 3) * 0.58);
+                var position = (phase + (progress * speed)) % 1.18;
+                var headY = (int)Math.Round((position * (wallHeight + 26)) - 8);
+                var length = 5 + (int)Math.Round(Random01(seed, index, 4) * 5);
+                var brightness = (0.58 + (Random01(seed, index, 5) * 0.42)) * clip.Intensity;
+                var edgeFade = Math.Clamp(Math.Min(position / 0.07, (1.18 - position) / 0.08), 0, 1);
+
+                for (var segment = 0; segment < length; segment++)
+                {
+                    var y = headY - segment;
+                    if (y < 0 || y >= wallHeight)
+                    {
+                        continue;
+                    }
+
+                    var level = brightness * edgeFade;
+                    var barColor = Scale(clip.Color, level);
+                    colors[(y * wallWidth) + x] = barColor;
+
+                    var haloColor = Scale(clip.Color, level * 0.36);
+                    if (x - 1 >= 0)
+                    {
+                        colors[(y * wallWidth) + x - 1] = haloColor;
+                    }
+                    if (x + 1 < wallWidth)
+                    {
+                        colors[(y * wallWidth) + x + 1] = haloColor;
+                    }
+
+                    var outerGlow = Scale(clip.Color, level * 0.12);
+                    if (x - 2 >= 0)
+                    {
+                        colors[(y * wallWidth) + x - 2] = outerGlow;
+                    }
+                    if (x + 2 < wallWidth)
+                    {
+                        colors[(y * wallWidth) + x + 2] = outerGlow;
+                    }
+                }
+
+                var capGlow = Scale(clip.Color, brightness * edgeFade * 0.22);
+                var topGlowY = headY - length;
+                if (topGlowY >= 0 && topGlowY < wallHeight)
+                {
+                    colors[(topGlowY * wallWidth) + x] = capGlow;
+                }
+                var bottomGlowY = headY + 1;
+                if (bottomGlowY >= 0 && bottomGlowY < wallHeight)
+                {
+                    colors[(bottomGlowY * wallWidth) + x] = capGlow;
+                }
+            }
+        }
 
         private static IEnumerable<int> ResolveTargets(TimelineClip clip, int totalPixels)
         {
@@ -177,6 +364,8 @@ namespace Liekinheitin.CreativeTool.Services
                 EffectType.Equalizer => Scale(clip.Color, EqualizerLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
                 EffectType.Ripple => Scale(clip.Color, RippleLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
                 EffectType.ClickRipple => Scale(clip.Color, ClickRippleLevel(localTime, clip.Duration, entityId, wallWidth, wallHeight, clip.RippleCenterX, clip.RippleCenterY) * intensity),
+                EffectType.HeartbeatTrace => Scale(clip.Color, HeartbeatTraceLevel(localTime, entityId, wallWidth, clip.Speed) * intensity),
+                EffectType.ContractExplodeRipple => Scale(clip.Color, ContractExplodeRippleLevel(localTime, clip.Duration, entityId, wallWidth, wallHeight) * intensity),
                 _ => Scale(clip.Color, intensity)
             };
 
@@ -407,17 +596,75 @@ namespace Liekinheitin.CreativeTool.Services
             var farthestX = Math.Max(centerX, (wallWidth - 1) - centerX);
             var farthestY = Math.Max(centerY, (wallHeight - 1) - centerY);
             var maximumRadius = Math.Sqrt((farthestX * farthestX) + (farthestY * farthestY));
-            var expansion = 1 - Math.Pow(1 - progress, 2.35);
+            var expansion = progress;
             var radius = 3 + ((maximumRadius + 4) * expansion);
-            var thickness = 5.8 - (4.5 * progress);
+            var thickness = 7.2 - (5.4 * progress);
             var edgeDistance = Math.Abs(distance - radius);
             var ring = 1 - Math.Clamp(edgeDistance / Math.Max(0.8, thickness), 0, 1);
             ring = ring * ring * (3 - (2 * ring));
 
-            var fade = progress < 0.08
-                ? progress / 0.08
-                : Math.Pow(1 - progress, 0.72);
+            var fadeIn = 0.58 + (0.42 * Math.Clamp(progress / 0.055, 0, 1));
+            var fade = fadeIn * Math.Pow(1 - progress, 0.72);
             return ring * fade;
+        }
+
+        private static double HeartbeatTraceLevel(double localTime, int entityId, int wallWidth, double speed)
+        {
+            var cycleDuration = 1.18 / Math.Max(0.1, speed);
+            var progress = (localTime % cycleDuration) / cycleDuration;
+            var normalizedX = (entityId % Math.Max(1, wallWidth)) / (double)Math.Max(1, wallWidth - 1);
+
+            var writeHead = Math.Clamp(progress / 0.56, 0, 1);
+            var eraseHead = progress < 0.48 ? 0 : Math.Clamp((progress - 0.48) / 0.52, 0, 1);
+            const double feather = 0.025;
+            var written = Math.Clamp((writeHead - normalizedX) / feather, 0, 1);
+            var notErased = Math.Clamp((normalizedX - eraseHead) / feather, 0, 1);
+            var body = written * notErased;
+
+            var leadingGlow = Math.Max(0, 1 - (Math.Abs(normalizedX - writeHead) / 0.045));
+            return Math.Clamp((body * 0.82) + (leadingGlow * 0.28), 0, 1);
+        }
+
+        private static double ContractExplodeRippleLevel(
+            double localTime,
+            double duration,
+            int entityId,
+            int wallWidth,
+            int wallHeight)
+        {
+            var progress = Math.Clamp(localTime / Math.Max(0.001, duration), 0, 1);
+            var x = entityId % Math.Max(1, wallWidth);
+            var y = entityId / Math.Max(1, wallWidth);
+            var centerX = (wallWidth - 1) / 2.0;
+            var centerY = (wallHeight - 1) / 2.0;
+            var distance = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(y - centerY, 2));
+            var maximumRadius = Math.Sqrt((centerX * centerX) + (centerY * centerY));
+
+            double radius;
+            double thickness;
+            double intensity;
+            if (progress < 0.83)
+            {
+                var contraction = progress / 0.83;
+                var eased = contraction * contraction * (3 - (2 * contraction));
+                radius = maximumRadius * (0.78 - (0.70 * eased));
+                thickness = 4.8 + (2.2 * contraction);
+                intensity = 0.58 + (0.34 * contraction);
+            }
+            else
+            {
+                var explosion = (progress - 0.83) / 0.17;
+                var expansion = 1 - Math.Pow(1 - explosion, 2.6);
+                radius = 4 + ((maximumRadius + 8) * expansion);
+                thickness = 10.5 - (6.5 * explosion);
+                intensity = Math.Pow(1 - explosion, 0.38);
+            }
+
+            var edgeDistance = Math.Abs(distance - radius);
+            var ring = 1 - Math.Clamp(edgeDistance / Math.Max(1, thickness), 0, 1);
+            ring = ring * ring * (3 - (2 * ring));
+            var innerGlow = Math.Max(0, 1 - (distance / Math.Max(1, radius))) * (progress < 0.83 ? 0.18 : 0.42);
+            return Math.Clamp((ring * intensity) + innerGlow, 0, 1);
         }
 
         private static RgbwColor Scale(RgbwColor color, double factor)

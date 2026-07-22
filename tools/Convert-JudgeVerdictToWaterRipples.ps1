@@ -74,6 +74,92 @@ for ($index = 0; $index -lt 4; $index++) {
 }
 
 $project.Name = [System.IO.Path]::GetFileNameWithoutExtension($OutputName)
+
+$violinTrack = $project.Tracks | Where-Object { $_.Name -like '2*Violon*' } | Select-Object -First 1
+if ($null -eq $violinTrack) {
+    throw 'Piste « Violon » introuvable.'
+}
+foreach ($clip in $violinTrack.Clips) {
+    $clip.EffectType = 11 # HeartbeatTrace : dessin puis effacement de gauche à droite
+    $clip.Speed = 1
+    $clip.MovementEffect = 0
+    if ($clip.Name -like '*halo*') {
+        $clip.Intensity = [Math]::Min([double]$clip.Intensity, 0.42)
+    }
+}
+
+$voiceTrack = $project.Tracks | Where-Object { $_.Name -like '1*Voix*' } | Select-Object -First 1
+if ($null -eq $voiceTrack) {
+    throw 'Piste « Voix homme » introuvable.'
+}
+$emberSources = @($voiceTrack.Clips | Where-Object {
+    $_.Name -eq 'Voix homme - ondulations fortes 5' -or
+    $_.Name -eq 'Voix homme - ondulations fortes 8'
+})
+if ($emberSources.Count -ne 2) {
+    throw "Deux passages de braises étaient attendus, $($emberSources.Count) ont été trouvés."
+}
+$emberTrack = [pscustomobject]@{
+    Name = 'Braises descendantes — voix homme'
+    IsMuted = $false
+    Clips = @()
+}
+foreach ($sourceClip in $emberSources) {
+    $emberTrack.Clips += [pscustomobject]@{
+        Name = $sourceClip.Name.Replace('Voix homme - ondulations fortes', 'Braises descendantes')
+        StartTime = [double]$sourceClip.StartTime
+        Duration = [double]$sourceClip.Duration
+        EffectType = 12
+        IsAudio = $false
+        IsHidden = $false
+        IsMedia = $false
+        MediaOverlayId = $null
+        Target = [pscustomobject]@{ Type = 0; EntityIds = @(); TrackName = $null }
+        Color = [pscustomobject]@{ R = 255; G = 104; B = 10; W = 0 }
+        Intensity = 1.0
+        Speed = 1.0
+        RippleCenterX = $null
+        RippleCenterY = $null
+        MovementEffect = 0
+        MovementOffsetX = 0
+        MovementOffsetY = 0
+        RotationDegrees = 0
+        IsMotionDraft = $false
+        MovementKeyframes = @()
+    }
+}
+$project.Tracks += $emberTrack
+
+$whiteLinesTrack = [pscustomobject]@{
+    Name = 'Lignes blanches descendantes'
+    IsMuted = $false
+    Clips = @(
+        [pscustomobject]@{
+            Name = 'Lignes blanches — chute 9,8 à 11 s'
+            StartTime = 9.8
+            Duration = 1.2
+            EffectType = 13
+            IsAudio = $false
+            IsHidden = $false
+            IsMedia = $false
+            MediaOverlayId = $null
+            Target = [pscustomobject]@{ Type = 0; EntityIds = @(); TrackName = $null }
+            Color = [pscustomobject]@{ R = 224; G = 238; B = 255; W = 36 }
+            Intensity = 0.92
+            Speed = 1.0
+            RippleCenterX = $null
+            RippleCenterY = $null
+            MovementEffect = 0
+            MovementOffsetX = 0
+            MovementOffsetY = 0
+            RotationDegrees = 0
+            IsMotionDraft = $false
+            MovementKeyframes = @()
+        }
+    )
+}
+$project.Tracks += $whiteLinesTrack
+
 $json = $project | ConvertTo-Json -Depth 100
 [System.IO.File]::WriteAllText($output, $json, [System.Text.UTF8Encoding]::new($false))
 Write-Output $output

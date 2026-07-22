@@ -309,6 +309,10 @@
                                     <ComboBoxItem Content="Égaliseur" Tag="Equalizer" />
                                     <ComboBoxItem Content="Ondes concentriques" Tag="Ripple" />
                                     <ComboBoxItem Content="Anneau d'impact plein écran" Tag="ClickRipple" />
+                                    <ComboBoxItem Content="Tracé cardiaque dessiné" Tag="HeartbeatTrace" />
+                                    <ComboBoxItem Content="Braises descendantes" Tag="FallingEmbers" />
+                                    <ComboBoxItem Content="Lignes blanches descendantes" Tag="WhiteFallingLines" />
+                                    <ComboBoxItem Content="Ondulation — contraction et explosion" Tag="ContractExplodeRipple" />
                                 </ComboBox>
 
                                 <Grid Margin="0,0,0,8">

@@ -12,6 +12,10 @@ namespace Liekinheitin.CreativeTool.Models
         Sparkle,
         Equalizer,
         Ripple,
-        ClickRipple
+        ClickRipple,
+        HeartbeatTrace,
+        FallingEmbers,
+        WhiteFallingLines,
+        ContractExplodeRipple
     }
 }

@@ -609,6 +609,10 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.Equalizer => Color.FromRgb(34, 151, 104),
                 EffectType.Ripple => Color.FromRgb(56, 116, 205),
                 EffectType.ClickRipple => Color.FromRgb(218, 65, 92),
+                EffectType.HeartbeatTrace => Color.FromRgb(176, 63, 145),
+                EffectType.FallingEmbers => Color.FromRgb(236, 92, 24),
+                EffectType.WhiteFallingLines => Color.FromRgb(214, 228, 244),
+                EffectType.ContractExplodeRipple => Color.FromRgb(44, 126, 224),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }
