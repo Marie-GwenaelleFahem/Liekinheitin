@@ -88,10 +88,26 @@ namespace Liekinheitin.CreativeTool.Services
 
         private static double ResolveMasterLevel(double currentTime, ShowProject project)
         {
-            var fadeDuration = Math.Max(0, project.AudioFadeOutDuration);
-            if (fadeDuration <= 0)
+            const double visualFadeDuration = 2.0;
+            var visualEnd = project.Tracks
+                .SelectMany(track => track.Clips)
+                .Where(clip => !clip.IsAudio && !clip.IsMedia && !clip.IsHidden)
+                .Select(clip => clip.EndTime)
+                .DefaultIfEmpty(project.Duration)
+                .Max();
+            var visualFadeStart = Math.Max(0, visualEnd - visualFadeDuration);
+            var visualLevel = 1.0;
+            if (currentTime > visualFadeStart)
             {
-                return 1;
+                var progress = Math.Clamp((currentTime - visualFadeStart) / Math.Max(0.001, visualEnd - visualFadeStart), 0, 1);
+                var smoothProgress = progress * progress * (3 - (2 * progress));
+                visualLevel = 1 - smoothProgress;
+            }
+
+            var audioFadeDuration = Math.Max(0, project.AudioFadeOutDuration);
+            if (audioFadeDuration <= 0)
+            {
+                return visualLevel;
             }
 
             var audioEnd = project.Tracks
@@ -100,15 +116,13 @@ namespace Liekinheitin.CreativeTool.Services
                 .Select(clip => clip.EndTime)
                 .DefaultIfEmpty(project.Duration)
                 .Max();
-            var fadeStart = Math.Max(0, audioEnd - fadeDuration);
-            if (currentTime <= fadeStart)
-            {
-                return 1;
-            }
+            var audioFadeStart = Math.Max(0, audioEnd - audioFadeDuration);
+            var audioLevel = currentTime <= audioFadeStart
+                ? 1
+                : Math.Clamp((audioEnd - currentTime) / Math.Max(0.001, audioEnd - audioFadeStart), 0, 1);
 
-            return Math.Clamp((audioEnd - currentTime) / Math.Max(0.001, audioEnd - fadeStart), 0, 1);
+            return Math.Min(visualLevel, audioLevel);
         }
-
         private static void ApplyClip(
             IDictionary<int, RgbwColor> colors,
             TimelineClip clip,
