@@ -267,7 +267,36 @@
                 <TabControl Background="#0D1420"
                             BorderBrush="#25364C"
                             Foreground="#F4F4F4">
-                    <TabItem Header="MIXER">
+                    <TabItem Header="CRÉER">
+                        <ScrollViewer VerticalScrollBarVisibility="Auto" Padding="0,12,0,0">
+                            <StackPanel>
+                                <TextBlock Foreground="#F5F8FF" FontSize="20" FontWeight="Bold" Text="Que veux-tu faire ressentir ?" />
+                                <TextBlock Margin="0,5,0,18" Foreground="#8FA3BC" TextWrapping="Wrap"
+                                           Text="Place la tête de lecture, puis ajoute une intention. Tout reste modifiable dans la timeline." />
+
+                                <Button Height="58" Margin="0,0,0,9" Tag="Aurora" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✦ AURORE BORÉALE"/><TextBlock Foreground="#9FB2C9" Text="Une nappe froide et lente · 6 secondes"/></StackPanel>
+                                </Button>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Voice" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="◉ CERCLES DE VOIX"/><TextBlock Foreground="#9FB2C9" Text="La voix se propage dans l’espace · 5 secondes"/></StackPanel>
+                                </Button>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Violin" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="〰 TRAIT DE VIOLON"/><TextBlock Foreground="#9FB2C9" Text="Un geste chaud et organique · 6 secondes"/></StackPanel>
+                                </Button>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Heartbeat" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="♥ BATTEMENT VIVANT"/><TextBlock Foreground="#9FB2C9" Text="Une pulsation humaine rouge · 4 secondes"/></StackPanel>
+                                </Button>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Impact" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✺ IMPACT LUMINEUX"/><TextBlock Foreground="#9FB2C9" Text="Un accent blanc très court · 0,35 seconde"/></StackPanel>
+                                </Button>
+                                <Button Height="58" Tag="Finale" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✹ FINALE INCANDESCENT"/><TextBlock Foreground="#9FB2C9" Text="Une montée chaude et scintillante · 5 secondes"/></StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </ScrollViewer>
+                    </TabItem>
+
+                    <TabItem Header="RÉGLAGES">
                         <ScrollViewer VerticalScrollBarVisibility="Auto"
                                       Padding="0,12,0,0">
                             <StackPanel>
@@ -314,7 +343,6 @@
                                 <ComboBox x:Name="TargetTypeComboBox" Margin="0,4,0,12" SelectedIndex="0">
                                     <ComboBoxItem Content="Mur complet" Tag="FullWall" />
                                     <ComboBoxItem Content="Selection" Tag="Selection" />
-                                    <ComboBoxItem Content="Piste" Tag="Track" />
                                 </ComboBox>
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="RGBW" />
@@ -656,7 +684,14 @@
                         <Grid Margin="0,0,0,8">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="Auto"/></Grid.ColumnDefinitions>
                             <StackPanel Orientation="Horizontal">
-                                <TextBlock VerticalAlignment="Center" Foreground="#F3F7FF" FontSize="15" FontWeight="Bold" Text="MULTITRACK SESSION" />
+                                <TextBlock VerticalAlignment="Center" Foreground="#F3F7FF" FontSize="15" FontWeight="Bold" Text="SPECTACLE" />
+                                <TextBox x:Name="ProjectNameTextBox" Width="240" Height="28" Margin="12,0,0,0" Padding="8,3"
+                                         ToolTip="Nom du spectacle" Text="Nouveau projet" />
+                                <Button Height="28" Margin="8,0,0,0" Padding="12,0"
+                                        Background="#203A55" BorderBrush="#62E6FF"
+                                        Click="OnCreateFinlandTemplateClick"
+                                        ToolTip="Créer une séquence artistique complète et modifiable"
+                                        Content="✦ CRÉER FINLAND 30S" />
                                 <Border Margin="10,0,0,0" Padding="8,3" CornerRadius="10" Background="#172B35" BorderBrush="#2C6B7E" BorderThickness="1">
                                     <TextBlock Foreground="#62E6FF" FontSize="10" Text="LIVE EDIT" />
                                 </Border>

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -50,6 +51,7 @@ namespace Liekinheitin.CreativeTool.Views
         private bool _isUpdatingPlaybackUi;
         private bool _isUpdatingPropertyUi;
         private bool _isUpdatingAudioUi;
+        private bool _isUpdatingProjectUi;
         private string? _pendingMediaPath;
         private string? _loadedMediaPath;
         private readonly List<BitmapFrame> _gifFrames = new();
@@ -115,6 +117,7 @@ namespace Liekinheitin.CreativeTool.Views
             };
             ApplyPropertiesButton.Click += OnApplyPropertiesClick;
             ApplyDurationButton.Click += OnApplyDurationClick;
+            ProjectNameTextBox.TextChanged += OnProjectNameChanged;
             ExtendTimelineButton.Click += OnExtendTimelineClick;
             AddShapeLayerButton.Click += OnAddShapeLayerClick;
             AddTrackButton.Click += OnAddTrackClick;
@@ -155,8 +158,20 @@ namespace Liekinheitin.CreativeTool.Views
             _playbackTimer.Start();
         }
 
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            if (!ConfirmDiscardChanges())
+            {
+                e.Cancel = true;
+                return;
+            }
+
+            base.OnClosing(e);
+        }
+
         protected override void OnClosed(EventArgs e)
         {
+            PublishBlackout();
             if (_statePublisher is IDisposable disposable)
             {
                 disposable.Dispose();
@@ -175,6 +190,14 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             var currentTime = _playbackController.CurrentTime;
+            if (_playbackController.Status != PlaybackStatus.Playing)
+            {
+                PublishBlackout();
+                RenderPreview(0);
+                UpdatePlaybackUi();
+                return;
+            }
+
             ApplyAudioFade(currentTime);
             TimelineControl.SetPlayhead(currentTime);
             RenderPreview(currentTime);
@@ -207,7 +230,14 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void OnPauseClick(object sender, RoutedEventArgs e) => _playbackController.Pause();
 
-        private void OnStopClick(object sender, RoutedEventArgs e) => _playbackController.Stop();
+        private void OnStopClick(object sender, RoutedEventArgs e)
+        {
+            _playbackController.Stop();
+            TimelineControl.SetPlayhead(0);
+            RenderPreview(0);
+            UpdateMediaOverlay(0);
+            PublishBlackout();
+        }
 
         private void OnSelectAudioClick(object sender, RoutedEventArgs e)
         {
@@ -352,9 +382,9 @@ namespace Liekinheitin.CreativeTool.Views
                 return;
             }
 
-            _selectedClip.Name = ClipNameTextBox.Text.Trim();
-            _selectedClip.StartTime = ReadDouble(ClipStartTextBox, _selectedClip.StartTime);
-            _selectedClip.Duration = Math.Max(0.001, ReadDouble(ClipDurationTextBox, _selectedClip.Duration));
+            _selectedClip.Name = string.IsNullOrWhiteSpace(ClipNameTextBox.Text) ? "Clip" : ClipNameTextBox.Text.Trim();
+            _selectedClip.StartTime = Math.Max(0, ReadDouble(ClipStartTextBox, _selectedClip.StartTime));
+            _selectedClip.Duration = Math.Max(0.05, ReadDouble(ClipDurationTextBox, _selectedClip.Duration));
 
             if (_selectedClip.IsMedia)
             {
@@ -382,7 +412,7 @@ namespace Liekinheitin.CreativeTool.Views
                 ReadByte(BlueTextBox, _selectedClip.Color.B),
                 ReadByte(WhiteTextBox, _selectedClip.Color.W));
             _selectedClip.Intensity = Math.Clamp(IntensitySlider.Value, 0, 1);
-            _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0, 10);
+            _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0.01, 10);
             _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
             EnsureProjectDurationIncludesClips();
             EnsurePlaybackInsideClip(_selectedClip);
@@ -782,6 +812,18 @@ namespace Liekinheitin.CreativeTool.Views
             UpdatePreviewSelectionOverlay();
         }
 
+        private void OnProjectNameChanged(object sender, TextChangedEventArgs e)
+        {
+            if (_isUpdatingProjectUi)
+            {
+                return;
+            }
+
+            _project.Name = string.IsNullOrWhiteSpace(ProjectNameTextBox.Text)
+                ? "Projet sans titre"
+                : ProjectNameTextBox.Text.Trim();
+            MarkDirty();
+        }
         private void OnApplyDurationClick(object sender, RoutedEventArgs e)
         {
             SetProjectDuration(ReadDouble(ProjectDurationTextBox, _project.Duration), markDirty: true);
@@ -974,14 +1016,62 @@ namespace Liekinheitin.CreativeTool.Views
             RenderPreview(_playbackController.CurrentTime);
         }
 
+        private void OnAddCreativeMotifClick(object sender, RoutedEventArgs e)
+        {
+            if (sender is not FrameworkElement { Tag: string motifId })
+            {
+                return;
+            }
+
+            var clip = ShowTemplateService.CreateMotif(
+                motifId,
+                _playbackController.CurrentTime,
+                _project.WallWidth,
+                _project.WallHeight,
+                out var trackName);
+            var track = _project.Tracks.FirstOrDefault(candidate => string.Equals(candidate.Name, trackName, StringComparison.OrdinalIgnoreCase));
+            if (track is null)
+            {
+                track = new Track { Name = trackName };
+                _project.Tracks.Add(track);
+            }
+
+            track.Clips.Add(clip);
+            _selectedTrack = track;
+            _selectedClip = clip;
+            EnsureProjectDurationIncludesClips();
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            TimelineControl.SelectTrack(track);
+            UpdatePropertyPanel(clip);
+            RenderPreview(_playbackController.CurrentTime);
+            MarkDirty();
+            ShowActionFeedback($"{clip.Name} ajouté à {clip.StartTime:0.##} s");
+        }
+        private void OnCreateFinlandTemplateClick(object sender, RoutedEventArgs e)
+        {
+            if (!ConfirmDiscardChanges())
+            {
+                return;
+            }
+
+            _playbackController.Stop();
+            LoadProjectIntoUi(ShowTemplateService.CreateFinlandThirtySeconds(), null, markDirty: true);
+            TimelineControl.SetPlayhead(0);
+            RenderPreview(0);
+            ShowActionFeedback("Séquence Finland 30s créée — ajoute maintenant ta musique");
+        }
         private void OnNewProjectClick(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardChanges()) return;
             _playbackController.Stop();
             LoadProjectIntoUi(CreateDefaultProject(), null, markDirty: false);
         }
 
         private void OnOpenProjectClick(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardChanges()) return;
+
             var dialog = new OpenFileDialog
             {
                 Filter = ProjectFilter,
@@ -1035,6 +1125,8 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void OnSavedProjectsClick(object sender, RoutedEventArgs e)
         {
+            if (!ConfirmDiscardChanges()) return;
+
             var window = new SavedProjectsWindow(_savedProjectsService) { Owner = this };
             if (window.ShowDialog() != true || window.SelectedProjectPath is not { } path) return;
 
@@ -1049,6 +1141,22 @@ namespace Liekinheitin.CreativeTool.Views
             }
         }
 
+        private bool ConfirmDiscardChanges()
+        {
+            if (!_isDirty)
+            {
+                return true;
+            }
+
+            var answer = MessageBox.Show(
+                this,
+                "Le spectacle contient des modifications non sauvegardées. Continuer et les perdre ?",
+                "Modifications non sauvegardées",
+                MessageBoxButton.YesNo,
+                MessageBoxImage.Warning,
+                MessageBoxResult.No);
+            return answer == MessageBoxResult.Yes;
+        }
         private void OnExitClick(object sender, RoutedEventArgs e) => Close();
 
         private void SaveProjectAs()
@@ -1062,6 +1170,14 @@ namespace Liekinheitin.CreativeTool.Views
 
             if (dialog.ShowDialog(this) == true)
             {
+                if (string.Equals(_project.Name, "Nouveau projet", StringComparison.OrdinalIgnoreCase))
+                {
+                    _project.Name = Path.GetFileNameWithoutExtension(dialog.FileName);
+                    _isUpdatingProjectUi = true;
+                    ProjectNameTextBox.Text = _project.Name;
+                    _isUpdatingProjectUi = false;
+                }
+
                 SaveProject(dialog.FileName);
             }
         }
@@ -1085,6 +1201,9 @@ namespace Liekinheitin.CreativeTool.Views
         {
             _project = project;
             _projectPath = projectPath;
+            _isUpdatingProjectUi = true;
+            ProjectNameTextBox.Text = project.Name;
+            _isUpdatingProjectUi = false;
             _isDirty = markDirty;
             _selectedClip = FindFirstClip(project);
             _selectedTrack = _selectedClip is null ? project.Tracks.FirstOrDefault() : FindTrackContainingClip(_selectedClip);
@@ -1595,6 +1714,17 @@ namespace Liekinheitin.CreativeTool.Views
             }
         }
 
+        private void PublishBlackout()
+        {
+            try
+            {
+                _statePublisher.Publish(_playbackEngine.ComputeBlackoutState(_project));
+            }
+            catch
+            {
+                PlaybackStatusItem.Content = "Erreur envoi UDP";
+            }
+        }
         private void MarkDirty()
         {
             _isDirty = true;
@@ -2384,5 +2514,3 @@ namespace Liekinheitin.CreativeTool.Views
         private static byte ScaleChannel(byte value, double factor) => (byte)Math.Clamp((int)Math.Round(value * factor), 0, 255);
     }
 }
-
-

@@ -1,9 +1,9 @@
-﻿{
+{
     "Name":  "Finland – Voix, Violon et Ondulations",
     "Duration":  22.028571428571425,
     "WallWidth":  128,
     "WallHeight":  128,
-    "AudioFilePath":  "D:\\Myaki\\WEB\\Dev\\Liekinheitin\\Liekinheitin\\Liekinheitin\\CreativeTool\\Animations\\finland-liekinheitin_eBVG2i2a.mp3",
+    "AudioFilePath":  "finland-liekinheitin_eBVG2i2a.mp3",
     "AudioVolume":  1,
     "Tracks":  [
                    {

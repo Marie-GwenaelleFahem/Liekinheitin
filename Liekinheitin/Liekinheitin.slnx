@@ -4,6 +4,7 @@
   </Folder>
   <Project Path="Application/Liekinheitin.Application.csproj" />
   <Project Path="CreativeTool/Liekinheitin.CreativeTool.csproj" />
+  <Project Path="CreativeTool.SmokeTests/Liekinheitin.CreativeTool.SmokeTests.csproj" />
   <Project Path="Domain/Liekinheitin.Domain.csproj" />
   <Project Path="Infrastructure/Liekinheitin.Infrastructure.csproj" />
   <Project Path="RoutingHost/Liekinheitin.RoutingHost.csproj" />

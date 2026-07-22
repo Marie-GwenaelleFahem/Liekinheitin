@@ -23,8 +23,9 @@ namespace Liekinheitin.CreativeTool.Services
             }
 
             var state = new State();
-            foreach (var (entityId, color) in colors.OrderBy(pair => pair.Key))
+            for (var entityId = 0; entityId < totalPixels; entityId++)
             {
+                var color = colors.GetValueOrDefault(entityId, new RgbwColor(0, 0, 0, 0));
                 var fadedColor = Scale(color, masterLevel);
                 state.Entities.Add(new Entity
                 {
@@ -38,6 +39,21 @@ namespace Liekinheitin.CreativeTool.Services
             return state;
         }
 
+        public State ComputeBlackoutState(ShowProject project)
+        {
+            var state = new State();
+            var totalPixels = Math.Max(0, project.WallWidth * project.WallHeight);
+            for (var entityId = 0; entityId < totalPixels; entityId++)
+            {
+                state.Entities.Add(new Entity
+                {
+                    Id = entityId,
+                    Channels = new byte[] { 0, 0, 0, 0 }
+                });
+            }
+
+            return state;
+        }
         private static double ResolveMasterLevel(double currentTime, ShowProject project)
         {
             var fadeDuration = Math.Max(0, project.AudioFadeOutDuration);

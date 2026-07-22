@@ -1,40 +1,51 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
 using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 
-namespace Liekinheitin.Infrastructure.Network;
-
-/// <summary>
-/// Implémentation concrète d'<see cref="IStatePublisher"/>, utilisée côté CreativeTool.
-/// </summary>
-/// <remarks>
-/// <see cref="Publish"/> sérialise l'objet <see cref="State"/> reçu en JSON et l'envoie via
-/// UDP vers l'adresse IP et le port de RoutingHost. <c>MainViewModel</c> détient une
-/// référence à cette classe uniquement à travers le type <see cref="IStatePublisher"/>, et
-/// l'appelle à chaque frame pendant la lecture de la timeline — environ 40 fois par seconde.
-/// </remarks>
-public class UdpStatePublisher : IStatePublisher, IDisposable
+namespace Liekinheitin.Infrastructure.Network
 {
-    private readonly UdpClient _udpClient = new();
-    private readonly string _targetIp;
-    private readonly int _targetPort;
-
-    /// <param name="targetIp">Adresse IP de RoutingHost.</param>
-    /// <param name="targetPort">Port UDP sur lequel RoutingHost écoute les États.</param>
-    public UdpStatePublisher(string targetIp, int targetPort)
+    public class UdpStatePublisher : IStatePublisher, IDisposable
     {
-        _targetIp = targetIp;
-        _targetPort = targetPort;
-    }
+        private readonly UdpClient _udpClient = new();
+        private readonly string _targetIp;
+        private readonly int _targetPort;
+        private const int MaxEntitiesPerChunk = 500;
 
-    /// <inheritdoc />
-    public void Publish(State state)
-    {
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(state);
-        _udpClient.Send(payload, payload.Length, _targetIp, _targetPort);
-    }
+        public UdpStatePublisher(string targetIp, int targetPort)
+        {
+            _targetIp = targetIp;
+            _targetPort = targetPort;
+        }
 
-    public void Dispose() => _udpClient.Dispose();
+        public void Publish(State state)
+        {
+            var entities = state.Entities;
+            int totalChunks = (int)Math.Ceiling(entities.Count / (double)MaxEntitiesPerChunk);
+            if (totalChunks == 0) totalChunks = 1;
+
+            var messageId = Guid.NewGuid();
+
+            for (int i = 0; i < totalChunks; i++)
+            {
+                var chunkEntities = entities
+                    .Skip(i * MaxEntitiesPerChunk)
+                    .Take(MaxEntitiesPerChunk)
+                    .ToList();
+
+                var chunk = new StateChunk
+                {
+                    MessageId = messageId,
+                    ChunkIndex = i,
+                    TotalChunks = totalChunks,
+                    Entities = chunkEntities
+                };
+
+                byte[] payload = JsonSerializer.SerializeToUtf8Bytes(chunk);
+                _udpClient.Send(payload, payload.Length, _targetIp, _targetPort);
+            }
+        }
+
+        public void Dispose() => _udpClient.Dispose();
+    }
 }
