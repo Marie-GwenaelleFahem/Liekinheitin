@@ -11,6 +11,11 @@ namespace Liekinheitin.CreativeTool.Models
         Breath,
         Sparkle,
         Equalizer,
-        Ripple
+        Ripple,
+        Snowfall,
+        Frost,
+        Fire,
+        ToxicHeart,
+        FireIce
     }
 }

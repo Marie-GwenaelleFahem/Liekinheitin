@@ -274,23 +274,23 @@
                                 <TextBlock Margin="0,5,0,18" Foreground="#8FA3BC" TextWrapping="Wrap"
                                            Text="Place la tête de lecture, puis ajoute une intention. Tout reste modifiable dans la timeline." />
 
-                                <Button Height="58" Margin="0,0,0,9" Tag="Aurora" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✦ AURORE BORÉALE"/><TextBlock Foreground="#9FB2C9" Text="Une nappe froide et lente · 6 secondes"/></StackPanel>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Snowfall" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="❄ CHUTE DE FLOCONS"/><TextBlock Foreground="#9FB2C9" Text="La neige descend, couvre le sol puis tourbillonne · 7 secondes"/></StackPanel>
                                 </Button>
-                                <Button Height="58" Margin="0,0,0,9" Tag="Voice" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="◉ CERCLES DE VOIX"/><TextBlock Foreground="#9FB2C9" Text="La voix se propage dans l’espace · 5 secondes"/></StackPanel>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Frost" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✧ GIVRE CRISTALLIN"/><TextBlock Foreground="#9FB2C9" Text="La glace envahit la scène depuis les bords · 5 secondes"/></StackPanel>
                                 </Button>
-                                <Button Height="58" Margin="0,0,0,9" Tag="Violin" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="〰 TRAIT DE VIOLON"/><TextBlock Foreground="#9FB2C9" Text="Un geste chaud et organique · 6 secondes"/></StackPanel>
+                                <Button Height="58" Margin="0,0,0,9" Tag="Fire" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="♨ FLAMMES VIVANTES"/><TextBlock Foreground="#9FB2C9" Text="Le feu monte et danse depuis le sol · 6 secondes"/></StackPanel>
                                 </Button>
-                                <Button Height="58" Margin="0,0,0,9" Tag="Heartbeat" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="♥ BATTEMENT VIVANT"/><TextBlock Foreground="#9FB2C9" Text="Une pulsation humaine rouge · 4 secondes"/></StackPanel>
+                                <Button Height="58" Margin="0,0,0,9" Tag="ToxicLove" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="♥ AMOUR TOXIQUE"/><TextBlock Foreground="#9FB2C9" Text="Un cœur rose acide contaminé de vert · 5 secondes"/></StackPanel>
                                 </Button>
                                 <Button Height="58" Margin="0,0,0,9" Tag="Impact" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✺ IMPACT LUMINEUX"/><TextBlock Foreground="#9FB2C9" Text="Un accent blanc très court · 0,35 seconde"/></StackPanel>
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✺ IMPACT EUROVISION"/><TextBlock Foreground="#9FB2C9" Text="Un flash très court pour marquer un beat · 0,28 seconde"/></StackPanel>
                                 </Button>
-                                <Button Height="58" Tag="Finale" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
-                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="✹ FINALE INCANDESCENT"/><TextBlock Foreground="#9FB2C9" Text="Une montée chaude et scintillante · 5 secondes"/></StackPanel>
+                                <Button Height="58" Tag="FireIce" Click="OnAddCreativeMotifClick" HorizontalContentAlignment="Left">
+                                    <StackPanel Margin="8,0"><TextBlock FontSize="14" FontWeight="Bold" Text="⚡ FEU CONTRE GLACE"/><TextBlock Foreground="#9FB2C9" Text="Collision finale chaude et froide · 6 secondes"/></StackPanel>
                                 </Button>
                             </StackPanel>
                         </ScrollViewer>
@@ -337,6 +337,11 @@
                                     <ComboBoxItem Content="Étincelles" Tag="Sparkle" />
                                     <ComboBoxItem Content="Égaliseur" Tag="Equalizer" />
                                     <ComboBoxItem Content="Ondes concentriques" Tag="Ripple" />
+                                    <ComboBoxItem Content="Chute de flocons" Tag="Snowfall" />
+                                    <ComboBoxItem Content="Givre cristallin" Tag="Frost" />
+                                    <ComboBoxItem Content="Flammes vivantes" Tag="Fire" />
+                                    <ComboBoxItem Content="Amour toxique" Tag="ToxicHeart" />
+                                    <ComboBoxItem Content="Feu contre glace" Tag="FireIce" />
                                 </ComboBox>
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Cible" />
@@ -469,7 +474,7 @@
                                         <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Famille" />
                                         <ComboBox x:Name="CustomShapeTypeComboBox" Margin="0,4,0,8" SelectedIndex="0">
                                             <ComboBoxItem Content="Ondulations concentriques" Tag="Ripple" />
-                                            <ComboBoxItem Content="Tracé cardiaque" Tag="Heartbeat" />
+                                            <ComboBoxItem Content="Tracé cardiaque" Tag="ToxicLove" />
                                         </ComboBox>
 
                                         <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Complexité" />

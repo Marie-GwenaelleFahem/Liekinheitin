@@ -90,6 +90,21 @@ foreach (var time in Enumerable.Range(0, 31).Select(second => (double)second))
     var state = engine.ComputeState(time, finlandTemplate);
     Assert(state.Entities.Count == 128 * 128, $"Le modèle Finland doit produire une image complète à {time}s.");
 }
+foreach (var time in new[] { 1.0, 6.5, 10.0, 15.0, 20.0, 26.0, 29.5 })
+{
+    var state = engine.ComputeState(time, finlandTemplate);
+    var litPixels = state.Entities.Count(entity => entity.Channels.Any(channel => channel > 0));
+    Assert(litPixels > 20, $"La scène Finland doit être visuellement active à {time}s.");
+}
+
+foreach (var motifId in new[] { "Snowfall", "Frost", "Fire", "ToxicLove", "FireIce", "Impact" })
+{
+    var motif = ShowTemplateService.CreateMotif(motifId, 0, 128, 128, out var trackName);
+    var motifProject = new ShowProject { Duration = motif.Duration, Tracks = { new Track { Name = trackName, Clips = { motif } } } };
+    var sampleTime = motif.Duration <= 0.5 ? motif.Duration / 2 : Math.Min(2, motif.Duration / 2);
+    var state = engine.ComputeState(sampleTime, motifProject);
+    Assert(state.Entities.Any(entity => entity.Channels.Any(channel => channel > 0)), $"Le motif {motifId} doit être visible.");
+}
 Console.WriteLine("CreativeTool smoke tests: OK");
 
 static void Assert(bool condition, string message)

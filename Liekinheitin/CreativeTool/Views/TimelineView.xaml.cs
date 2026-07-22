@@ -608,6 +608,11 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.Sparkle => Color.FromRgb(173, 121, 212),
                 EffectType.Equalizer => Color.FromRgb(34, 151, 104),
                 EffectType.Ripple => Color.FromRgb(56, 116, 205),
+                EffectType.Snowfall => Color.FromRgb(112, 196, 232),
+                EffectType.Frost => Color.FromRgb(58, 134, 214),
+                EffectType.Fire => Color.FromRgb(232, 82, 28),
+                EffectType.ToxicHeart => Color.FromRgb(222, 35, 126),
+                EffectType.FireIce => Color.FromRgb(152, 78, 196),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }
