@@ -1634,8 +1634,9 @@ namespace Liekinheitin.CreativeTool.Views
         {
             try
             {
-                var state = _playbackEngine.ComputeState(currentTime, _project);
-                _statePublisher.Publish(state);
+                var gridState = _playbackEngine.ComputeState(currentTime, _project);
+                var networkState = _playbackEngine.MapToRealEntityIds(gridState);
+                _statePublisher.Publish(networkState);
             }
             catch
             {

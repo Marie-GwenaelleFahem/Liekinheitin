@@ -9,11 +9,10 @@ namespace Liekinheitin.CreativeTool.Services
     public class ShowPlaybackEngine
     {
         // Identifiants réels du patch (patch.json), triés, une seule fois : le pixel de grille
-        // interne n (0, 1, 2...) correspond à _realEntityIds[n]. Tout le calcul interne des
-        // effets (Wave, Chase, Ripple, rotation, déplacement...) continue de raisonner en
-        // coordonnées de grille (x = id % largeur, y = id / largeur) ; seul l'identifiant final
-        // écrit dans l'Entity envoyée est traduit vers le vrai ID physique, pour que
-        // RoutingHost/PatchService le reconnaisse au lieu de l'ignorer silencieusement.
+        // interne n (0, 1, 2...) correspond à _realEntityIds[n]. Utilisé uniquement par
+        // MapToRealEntityIds() pour traduire un State avant l'envoi réseau — ComputeState()
+        // continue de renvoyer des ID de grille bruts, parce que l'aperçu local (PixelGridView)
+        // indexe directement son buffer par ces ID et ne connaît rien du vrai patch.
         private readonly IReadOnlyList<int>? _realEntityIds;
 
         public ShowPlaybackEngine(IReadOnlyList<int>? realEntityIds = null)
@@ -41,7 +40,7 @@ namespace Liekinheitin.CreativeTool.Services
                 var fadedColor = Scale(color, masterLevel);
                 state.Entities.Add(new Entity
                 {
-                    Id = ResolveRealEntityId(entityId),
+                    Id = entityId,
                     Channels = fadedColor.W > 0
                         ? new[] { fadedColor.R, fadedColor.G, fadedColor.B, fadedColor.W }
                         : new[] { fadedColor.R, fadedColor.G, fadedColor.B }
@@ -49,6 +48,32 @@ namespace Liekinheitin.CreativeTool.Services
             }
 
             return state;
+        }
+
+        /// <summary>
+        /// Construit une copie de <paramref name="gridState"/> (tel que renvoyé par
+        /// <see cref="ComputeState"/>, en ID de grille) où chaque <c>Entity.Id</c> est traduit
+        /// vers le vrai identifiant physique du patch — à appeler uniquement juste avant
+        /// l'envoi réseau vers RoutingHost, jamais pour l'aperçu local.
+        /// </summary>
+        public State MapToRealEntityIds(State gridState)
+        {
+            if (_realEntityIds is not { Count: > 0 })
+            {
+                return gridState;
+            }
+
+            var mapped = new State();
+            foreach (var entity in gridState.Entities)
+            {
+                mapped.Entities.Add(new Entity
+                {
+                    Id = ResolveRealEntityId(entity.Id),
+                    Channels = entity.Channels,
+                });
+            }
+
+            return mapped;
         }
 
         /// <summary>
