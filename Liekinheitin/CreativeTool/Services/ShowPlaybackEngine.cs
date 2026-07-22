@@ -162,6 +162,7 @@ namespace Liekinheitin.CreativeTool.Services
                 EffectType.Sparkle => Scale(clip.Color, SparkleLevel(localTime, entityId, clip.Speed) * intensity),
                 EffectType.Equalizer => Scale(clip.Color, EqualizerLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
                 EffectType.Ripple => Scale(clip.Color, RippleLevel(localTime, entityId, wallWidth, wallHeight, clip.Speed) * intensity),
+                EffectType.ClickRipple => Scale(clip.Color, ClickRippleLevel(localTime, clip.Duration, entityId, wallWidth, wallHeight, clip.RippleCenterX, clip.RippleCenterY) * intensity),
                 _ => Scale(clip.Color, intensity)
             };
 
@@ -366,6 +367,43 @@ namespace Liekinheitin.CreativeTool.Services
             var distance = Math.Sqrt((dx * dx) + (dy * dy));
             var phase = (distance * 0.42) - (localTime * Math.Max(0.1, speed) * 6);
             return Math.Pow((Math.Sin(phase) + 1) * 0.5, 4);
+        }
+
+        private static double ClickRippleLevel(
+            double localTime,
+            double duration,
+            int entityId,
+            int wallWidth,
+            int wallHeight,
+            double? requestedCenterX,
+            double? requestedCenterY)
+        {
+            if (duration <= 0)
+            {
+                return 0;
+            }
+
+            var progress = Math.Clamp(localTime / duration, 0, 1);
+            var centerX = Math.Clamp(requestedCenterX ?? ((wallWidth - 1) / 2.0), 0, Math.Max(0, wallWidth - 1));
+            var centerY = Math.Clamp(requestedCenterY ?? ((wallHeight - 1) / 2.0), 0, Math.Max(0, wallHeight - 1));
+            var x = entityId % Math.Max(1, wallWidth);
+            var y = entityId / Math.Max(1, wallWidth);
+            var distance = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(y - centerY, 2));
+
+            var farthestX = Math.Max(centerX, (wallWidth - 1) - centerX);
+            var farthestY = Math.Max(centerY, (wallHeight - 1) - centerY);
+            var maximumRadius = Math.Sqrt((farthestX * farthestX) + (farthestY * farthestY));
+            var expansion = 1 - Math.Pow(1 - progress, 2.35);
+            var radius = 3 + ((maximumRadius + 4) * expansion);
+            var thickness = 5.8 - (4.5 * progress);
+            var edgeDistance = Math.Abs(distance - radius);
+            var ring = 1 - Math.Clamp(edgeDistance / Math.Max(0.8, thickness), 0, 1);
+            ring = ring * ring * (3 - (2 * ring));
+
+            var fade = progress < 0.08
+                ? progress / 0.08
+                : Math.Pow(1 - progress, 0.72);
+            return ring * fade;
         }
 
         private static RgbwColor Scale(RgbwColor color, double factor)

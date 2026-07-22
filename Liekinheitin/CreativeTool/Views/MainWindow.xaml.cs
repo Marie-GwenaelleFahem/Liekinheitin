@@ -118,6 +118,7 @@ namespace Liekinheitin.CreativeTool.Views
                 TrackNameTextBox.Text = track.Name;
             };
             ApplyPropertiesButton.Click += OnApplyPropertiesClick;
+            AddOrganicRippleButton.Click += OnAddOrganicRippleClick;
             ApplyDurationButton.Click += OnApplyDurationClick;
             ExtendTimelineButton.Click += OnExtendTimelineClick;
             AddShapeLayerButton.Click += OnAddShapeLayerClick;
@@ -148,6 +149,7 @@ namespace Liekinheitin.CreativeTool.Views
             ResizeSmallerButton.Click += OnResizeSelectionClick;
             ResizeLargerButton.Click += OnResizeSelectionClick;
             ColorPickerControl.ColorChanged += OnColorPickerColorChanged;
+            PreviewKeyDown += OnWindowPreviewKeyDown;
             _playbackController.StateChanged += (_, _) =>
             {
                 SyncAudioPlayback();
@@ -387,12 +389,69 @@ namespace Liekinheitin.CreativeTool.Views
                 ReadByte(WhiteTextBox, _selectedClip.Color.W));
             _selectedClip.Intensity = Math.Clamp(IntensitySlider.Value, 0, 1);
             _selectedClip.Speed = Math.Clamp(SpeedSlider.Value, 0, 10);
+            _selectedClip.RippleCenterX = Math.Clamp(ReadDouble(RippleCenterXTextBox, _selectedClip.RippleCenterX ?? (_project.WallWidth - 1) / 2.0), 0, _project.WallWidth - 1);
+            _selectedClip.RippleCenterY = Math.Clamp(ReadDouble(RippleCenterYTextBox, _selectedClip.RippleCenterY ?? (_project.WallHeight - 1) / 2.0), 0, _project.WallHeight - 1);
             _selectedClip.MovementEffect = ReadComboTag(MovementEffectComboBox, _selectedClip.MovementEffect);
             EnsureProjectDurationIncludesClips();
             EnsurePlaybackInsideClip(_selectedClip);
 
             MarkDirty();
             TimelineControl.Redraw();
+            RenderPreview(_playbackController.CurrentTime);
+        }
+
+        private void OnWindowPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != Key.Space || Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase or ComboBox)
+            {
+                return;
+            }
+
+            if (_playbackController.Status == PlaybackStatus.Playing)
+            {
+                _playbackController.Pause();
+            }
+            else
+            {
+                _playbackController.Play();
+            }
+
+            e.Handled = true;
+        }
+
+        private void OnAddOrganicRippleClick(object sender, RoutedEventArgs e)
+        {
+            var track = _project.Tracks.FirstOrDefault(candidate =>
+                string.Equals(candidate.Name, "Ondulations organiques", StringComparison.OrdinalIgnoreCase));
+            if (track is null)
+            {
+                track = new Track { Name = "Ondulations organiques" };
+                _project.Tracks.Add(track);
+            }
+
+            var centerX = Math.Clamp(ReadDouble(RippleCenterXTextBox, (_project.WallWidth - 1) / 2.0), 0, _project.WallWidth - 1);
+            var centerY = Math.Clamp(ReadDouble(RippleCenterYTextBox, (_project.WallHeight - 1) / 2.0), 0, _project.WallHeight - 1);
+            var clip = new TimelineClip
+            {
+                Name = $"Ondulation organique {track.Clips.Count + 1}",
+                StartTime = Math.Min(_playbackController.CurrentTime, Math.Max(0, _project.Duration - 1.1)),
+                Duration = 1.1,
+                EffectType = EffectType.ClickRipple,
+                Target = TargetSelection.FullWall(),
+                Color = new RgbwColor(88, 174, 220, 72),
+                Intensity = 0.9,
+                Speed = 1,
+                RippleCenterX = centerX,
+                RippleCenterY = centerY
+            };
+            track.Clips.Add(clip);
+            _selectedTrack = track;
+            _selectedClip = clip;
+            EnsureProjectDurationIncludesClips();
+            TimelineControl.SetProject(_project);
+            TimelineControl.SelectClip(clip);
+            UpdatePropertyPanel(clip);
+            MarkDirty();
             RenderPreview(_playbackController.CurrentTime);
         }
 
@@ -1234,6 +1293,9 @@ namespace Liekinheitin.CreativeTool.Views
             WhiteTextBox.IsEnabled = enabled && !isAudioClip;
             IntensitySlider.IsEnabled = enabled && !isAudioClip;
             SpeedSlider.IsEnabled = enabled && !isAudioClip;
+            RippleCenterXTextBox.IsEnabled = enabled && !isAudioClip;
+            RippleCenterYTextBox.IsEnabled = enabled && !isAudioClip;
+            AddOrganicRippleButton.IsEnabled = enabled && !isAudioClip;
             ColorPickerControl.IsEnabled = enabled && !isAudioClip;
             ShapeEditModeComboBox.IsEnabled = enabled && !isAudioClip;
             MovementEffectComboBox.IsEnabled = enabled && !isAudioClip;
@@ -1254,6 +1316,8 @@ namespace Liekinheitin.CreativeTool.Views
             ColorPickerControl.SetColor(clip.Color);
             IntensitySlider.Value = clip.Intensity;
             SpeedSlider.Value = clip.Speed;
+            RippleCenterXTextBox.Text = (clip.RippleCenterX ?? ((_project.WallWidth - 1) / 2.0)).ToString("0.##", CultureInfo.InvariantCulture);
+            RippleCenterYTextBox.Text = (clip.RippleCenterY ?? ((_project.WallHeight - 1) / 2.0)).ToString("0.##", CultureInfo.InvariantCulture);
             SelectComboByTag(MovementEffectComboBox, clip.MovementEffect.ToString());
             UpdateShapeMotionUi(clip);
             _isUpdatingPropertyUi = false;
@@ -1800,6 +1864,8 @@ namespace Liekinheitin.CreativeTool.Views
                 Color = source.Color,
                 Intensity = source.Intensity,
                 Speed = source.Speed,
+                RippleCenterX = source.RippleCenterX,
+                RippleCenterY = source.RippleCenterY,
                 MovementEffect = source.MovementEffect,
                 MovementOffsetX = source.MovementOffsetX,
                 MovementOffsetY = source.MovementOffsetY,

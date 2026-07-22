@@ -11,6 +11,7 @@ namespace Liekinheitin.CreativeTool.Models
         Breath,
         Sparkle,
         Equalizer,
-        Ripple
+        Ripple,
+        ClickRipple
     }
 }

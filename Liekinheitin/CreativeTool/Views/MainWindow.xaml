@@ -308,7 +308,30 @@
                                     <ComboBoxItem Content="Étincelles" Tag="Sparkle" />
                                     <ComboBoxItem Content="Égaliseur" Tag="Equalizer" />
                                     <ComboBoxItem Content="Ondes concentriques" Tag="Ripple" />
+                                    <ComboBoxItem Content="Anneau d'impact plein écran" Tag="ClickRipple" />
                                 </ComboBox>
+
+                                <Grid Margin="0,0,0,8">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="8" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre ondulation X" />
+                                        <TextBox x:Name="RippleCenterXTextBox" Margin="0,4,0,0" Text="64" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2">
+                                        <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Centre ondulation Y" />
+                                        <TextBox x:Name="RippleCenterYTextBox" Margin="0,4,0,0" Text="64" />
+                                    </StackPanel>
+                                </Grid>
+                                <Button x:Name="AddOrganicRippleButton"
+                                        Height="32"
+                                        Margin="0,0,0,12"
+                                        Background="#18394A"
+                                        BorderBrush="#3D9CC0"
+                                        Content="+ Créer une ondulation organique" />
 
                                 <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Cible" />
                                 <ComboBox x:Name="TargetTypeComboBox" Margin="0,4,0,12" SelectedIndex="0">

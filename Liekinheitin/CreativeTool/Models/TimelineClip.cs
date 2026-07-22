@@ -28,6 +28,10 @@ namespace Liekinheitin.CreativeTool.Models
 
         public double Speed { get; set; } = 1.0;
 
+        public double? RippleCenterX { get; set; }
+
+        public double? RippleCenterY { get; set; }
+
         public MovementEffectType MovementEffect { get; set; } = MovementEffectType.None;
 
         public int MovementOffsetX { get; set; }

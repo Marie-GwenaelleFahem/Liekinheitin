@@ -608,6 +608,7 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.Sparkle => Color.FromRgb(173, 121, 212),
                 EffectType.Equalizer => Color.FromRgb(34, 151, 104),
                 EffectType.Ripple => Color.FromRgb(56, 116, 205),
+                EffectType.ClickRipple => Color.FromRgb(218, 65, 92),
                 _ => Color.FromRgb(180, 72, 72)
             };
         }
