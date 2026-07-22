@@ -1,0 +1,16 @@
+﻿<UserControl x:Class="Liekinheitin.CreativeTool.Views.AudioControlView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Border Background="{StaticResource PanelBackground}" BorderBrush="{StaticResource PanelBorderBrush}" BorderThickness="1">
+        <StackPanel>
+            <Border Background="{StaticResource PanelTitleBackground}" Padding="4">
+                <TextBlock Text="Musique" Foreground="White" FontWeight="Bold" />
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Margin="8">
+                <Button Content="Charger musique" Click="OnLoadClick" Padding="8,4" Margin="0,0,8,0" />
+                <TextBlock Text="{Binding FileLabel}" Foreground="White" VerticalAlignment="Center" />
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</UserControl>

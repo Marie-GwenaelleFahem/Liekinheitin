@@ -24,6 +24,8 @@ namespace Liekinheitin.CreativeTool
                 GridView.SelectionChanged += TimelineViewControl.SetSelectedShape;
                 vm.ShapeInspector.ShapeModified += () => GridView.RefreshDirtyFromScene();
                 vm.TimelinePlayer.Ticked += () => GridView.RefreshDirtyFromScene();
+                TimelineViewControl.SaveRequested += () => OnSaveProject(vm);
+                TimelineViewControl.LoadRequested += () => OnLoadProject(vm);
 
                 FixtureInspector.TimelineViewModel = vm.TimelineViewModel;
             }
@@ -32,6 +34,33 @@ namespace Liekinheitin.CreativeTool
 
             _timelineOriginalRow = Grid.GetRow(TimelineViewControl);
             TimelineViewControl.FullscreenToggleRequested += OnTimelineFullscreenToggle;
+        }
+        private void OnSaveProject(ViewModels.MainViewModel vm)
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog
+            {
+                Filter = "Projet Liekinheitin (*.json)|*.json",
+                DefaultExt = "json",
+                FileName = "animation.json"
+            };
+
+            if (dialog.ShowDialog() == true)
+                vm.SaveProject(dialog.FileName);
+        }
+
+        private void OnLoadProject(ViewModels.MainViewModel vm)
+        {
+            var dialog = new Microsoft.Win32.OpenFileDialog
+            {
+                Filter = "Projet Liekinheitin (*.json)|*.json",
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                vm.LoadProject(dialog.FileName);
+                GridView.RefreshFromScene();
+                TimelineViewControl.RefreshFromViewModel(); // voir note ci-dessous
+            }
         }
 
         private void OnTimelineFullscreenToggle()

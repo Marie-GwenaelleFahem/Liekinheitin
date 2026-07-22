@@ -21,6 +21,13 @@ namespace Liekinheitin.CreativeTool.Views
         private const double RowHeight = 28;
         private const double RulerHeight = 20;
         private bool _isScrubbing;
+        public event Action? SaveRequested;
+        public event Action? LoadRequested;
+        private int _labelTickCount;
+        private const int LabelUpdateEveryNTicks = 3;
+
+        private void OnSaveClick(object sender, RoutedEventArgs e) => SaveRequested?.Invoke();
+        private void OnLoadClick(object sender, RoutedEventArgs e) => LoadRequested?.Invoke();
 
         public TimelineView()
         {
@@ -53,6 +60,8 @@ namespace Liekinheitin.CreativeTool.Views
             double x = p.X - 100; // 100 = largeur de la colonne labels
             _vm.CurrentTime = Math.Max(0, Math.Min(x / PixelsPerSecond, _vm.Duration));
         }
+
+        public void RefreshFromViewModel() => RefreshTracks();
 
         private void AttachViewModel()
         {
@@ -96,7 +105,9 @@ namespace Liekinheitin.CreativeTool.Views
         private void OnTicked()
         {
             UpdatePlayhead();
-            if (_vm is not null)
+
+            _labelTickCount++;
+            if (_labelTickCount % LabelUpdateEveryNTicks == 0 && _vm is not null)
                 TimeLabel.Text = $"{_vm.CurrentTime:0.00}s";
         }
 
@@ -111,6 +122,8 @@ namespace Liekinheitin.CreativeTool.Views
             ContentGrid.Children.Clear();
 
             _tracksWidth = Math.Max(400, _vm.Duration * PixelsPerSecond + 40);
+            TracksColumn.Width = new GridLength(_tracksWidth);
+                                                               
 
             // Ligne 0 : la règle temporelle.
             ContentGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(RulerHeight) });

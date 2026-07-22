@@ -46,6 +46,7 @@
         <views:ShapeListView x:Name="ShapeList" Grid.Row="2" Grid.ColumnSpan="1"
                                DataContext="{Binding ShapeList}"
                                Width="Auto" HorizontalAlignment="Stretch" />
+        <views:AudioControlView DataContext="{Binding Audio}" Grid.Row="2" Margin="0,4,0,0" />
         <views:TimelineView x:Name="TimelineViewControl" Grid.Row="3" DataContext="{Binding TimelineViewModel}" Margin="0,4,0,0" />
         <views:FixtureControlView x:Name="FixtureControl" Grid.Row="4" DataContext="{Binding FixtureControl}" Margin="0,4,0,0" />
 

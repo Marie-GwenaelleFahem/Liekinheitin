@@ -12,7 +12,11 @@
             <Border Grid.Row="0" Background="{StaticResource PanelTitleBackground}" Padding="4">
                 <Grid>
                     <TextBlock Text="Timeline" Foreground="White" FontWeight="Bold" />
-                    <Button Content="Plein écran" Click="OnFullscreenClick" HorizontalAlignment="Right" Padding="8,2" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                        <Button Content="Enregistrer" Click="OnSaveClick" Padding="8,2" Margin="0,0,4,0" />
+                        <Button Content="Charger" Click="OnLoadClick" Padding="8,2" Margin="0,0,4,0" />
+                        <Button Content="Plein écran" Click="OnFullscreenClick" Padding="8,2" />
+                    </StackPanel>
                 </Grid>
             </Border>
 
@@ -32,7 +36,7 @@
                     MouseLeftButtonUp="OnContentGridMouseUp">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="100" />
-                        <ColumnDefinition Width="Auto" />
+                        <ColumnDefinition x:Name="TracksColumn" Width="0" />
                     </Grid.ColumnDefinitions>
                 </Grid>
             </ScrollViewer>

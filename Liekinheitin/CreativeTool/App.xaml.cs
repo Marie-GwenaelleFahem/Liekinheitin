@@ -16,9 +16,8 @@ namespace Liekinheitin.CreativeTool
             var scene = new SceneManager(layout);
             var brush = new BrushTool(scene);
             var fixtures = new FixtureManager();
-
-            var mainViewModel = new MainViewModel(scene, layout, brush, statePublisher, fixtures);
-
+            var audio = new Services.AudioPlaybackService();
+            var mainViewModel = new MainViewModel(scene, layout, brush, statePublisher, fixtures, audio);
             var mainWindow = new MainWindow { DataContext = mainViewModel };
             mainWindow.Show();
         }

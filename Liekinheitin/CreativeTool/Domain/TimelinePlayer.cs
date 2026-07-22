@@ -1,5 +1,7 @@
 ﻿using System;
-using System.Windows.Threading;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Windows.Media;
 
 namespace Liekinheitin.CreativeTool.Domain
 {
@@ -8,11 +10,13 @@ namespace Liekinheitin.CreativeTool.Domain
         private readonly Timeline _timeline;
         private readonly SceneManager _scene;
         private readonly FixtureManager _fixtures;
-        private readonly DispatcherTimer _timer;
-        private const int TickIntervalMs = 25;
-        private const int SliderNotifyEveryNTicks = 3;
-
-        private int _tickCount;
+        private readonly Stopwatch _stopwatch = new();
+        private readonly List<(Guid, int, int, int, int, double, Color)> _shapeUpdatesBuffer = new();
+        private double _lastElapsedSeconds;
+        private double _sliderAccumulator;
+        private double _updateAccumulator;
+        private const double SliderUpdateIntervalSeconds = 1.0 / 13.0;
+        private const double TargetUpdateIntervalSeconds = 1.0 / 25.0; // 25Hz — plafond du calcul réel
 
         public bool IsPlaying { get; private set; }
         public double CurrentTimeSeconds { get; private set; }
@@ -26,24 +30,24 @@ namespace Liekinheitin.CreativeTool.Domain
             _timeline = timeline;
             _scene = scene;
             _fixtures = fixtures;
-            _timer = new DispatcherTimer(DispatcherPriority.Render)
-            {
-                Interval = TimeSpan.FromMilliseconds(TickIntervalMs)
-            };
-            _timer.Tick += (_, _) => Tick();
         }
 
         public void Play()
         {
-            if (DurationSeconds <= 0) return;
+            if (DurationSeconds <= 0 || IsPlaying) return;
             IsPlaying = true;
-            _timer.Start();
+            _lastElapsedSeconds = 0;
+            _updateAccumulator = 0;
+            _stopwatch.Restart();
+            CompositionTarget.Rendering += OnRendering;
         }
 
         public void Pause()
         {
+            if (!IsPlaying) return;
             IsPlaying = false;
-            _timer.Stop();
+            CompositionTarget.Rendering -= OnRendering;
+            _stopwatch.Stop();
         }
 
         public void Stop()
@@ -60,31 +64,49 @@ namespace Liekinheitin.CreativeTool.Domain
             TimeChanged?.Invoke();
         }
 
-        private void Tick()
+        private void OnRendering(object? sender, EventArgs e)
         {
-            CurrentTimeSeconds += TickIntervalMs / 1000.0;
-            if (CurrentTimeSeconds >= DurationSeconds)
-            {
-                CurrentTimeSeconds = DurationSeconds;
-                Pause();
-            }
+            double nowElapsed = _stopwatch.Elapsed.TotalSeconds;
+            double delta = nowElapsed - _lastElapsedSeconds;
+            _lastElapsedSeconds = nowElapsed;
+
+            _updateAccumulator += delta;
+            if (_updateAccumulator < TargetUpdateIntervalSeconds)
+                return; // l'écran rafraîchit plus vite que nécessaire ; on ignore ce passage
+
+            double stepDelta = _updateAccumulator;
+            _updateAccumulator = 0;
+
+            CurrentTimeSeconds += stepDelta;
+            bool finished = CurrentTimeSeconds >= DurationSeconds;
+            if (finished) CurrentTimeSeconds = DurationSeconds;
 
             ApplyCurrentTime();
             Ticked?.Invoke();
 
-            _tickCount++;
-            if (_tickCount % SliderNotifyEveryNTicks == 0 || !IsPlaying)
+            _sliderAccumulator += stepDelta;
+            if (_sliderAccumulator >= SliderUpdateIntervalSeconds || finished)
+            {
+                _sliderAccumulator = 0;
                 TimeChanged?.Invoke();
+            }
+
+            if (finished) Pause();
         }
 
         private void ApplyCurrentTime()
         {
+            _shapeUpdatesBuffer.Clear();
+
             foreach (var track in _timeline.Tracks)
             {
                 var kf = track.Evaluate(CurrentTimeSeconds);
                 if (kf is null) continue;
-                _scene.ApplyShapeState(track.ShapeId, kf.X, kf.Y, kf.BaseWidth, kf.BaseHeight, kf.Scale, kf.Color);
+                _shapeUpdatesBuffer.Add((track.ShapeId, kf.X, kf.Y, kf.BaseWidth, kf.BaseHeight, kf.Scale, kf.Color));
             }
+
+            if (_shapeUpdatesBuffer.Count > 0)
+                _scene.ApplyShapeStatesBatch(_shapeUpdatesBuffer);
 
             foreach (var track in _timeline.FixtureTracks)
             {
@@ -94,6 +116,9 @@ namespace Liekinheitin.CreativeTool.Domain
             }
         }
 
-        public void Dispose() => _timer.Stop();
+        public void Dispose()
+        {
+            CompositionTarget.Rendering -= OnRendering;
+        }
     }
 }

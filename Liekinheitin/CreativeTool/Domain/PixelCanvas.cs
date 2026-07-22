@@ -10,7 +10,7 @@ namespace Liekinheitin.CreativeTool.Domain
         private readonly Dictionary<(int Col, int Row), int> _networkDirtyResendCounts = new();
         private readonly HashSet<(int Col, int Row)> _uiDirty = new();
         private readonly object _lock = new();
-        private const int ResendCount = 1;
+        private const int ResendCount = 4;
 
         public int Columns { get; }
         public int Rows { get; }
@@ -67,6 +67,23 @@ namespace Liekinheitin.CreativeTool.Domain
                     else _networkDirtyResendCounts[key] = remaining;
                 }
                 return list;
+            }
+        }
+
+        /// <summary>Écrit plusieurs pixels en un seul verrouillage, au lieu d'un verrouillage par
+        /// pixel — évite la surcharge de milliers de lock/unlock individuels par frame quand
+        /// plusieurs formes bougent en même temps.</summary>
+        public void SetPixelsBatch(IEnumerable<(int Col, int Row, Color Color)> pixels)
+        {
+            lock (_lock)
+            {
+                foreach (var (col, row, color) in pixels)
+                {
+                    if (col < 0 || col >= Columns || row < 0 || row >= Rows) continue;
+                    _pixels[col, row] = color;
+                    _networkDirtyResendCounts[(col, row)] = ResendCount;
+                    _uiDirty.Add((col, row));
+                }
             }
         }
 

@@ -19,6 +19,36 @@ namespace Liekinheitin.CreativeTool.Domain
         public PixelCanvas Display => _display;
         public IReadOnlyList<PlacedShape> Shapes => _shapes;
 
+        /// <summary>
+        /// Applique l'état de plusieurs formes en une seule fois, puis ne recompose qu'UNE
+        /// fois pour l'ensemble des cases affectées — au lieu d'une recomposition séparée par
+        /// forme (ce qui revérifiait inutilement toutes les formes à chaque appel individuel).
+        /// Utilisé par TimelinePlayer, qui met à jour plusieurs formes au même tick.
+        /// </summary>
+        public void ApplyShapeStatesBatch(IEnumerable<(Guid Id, int X, int Y, int BaseWidth, int BaseHeight, double Scale, Color Color)> updates)
+        {
+            var affectedCells = new HashSet<(int, int)>();
+
+            foreach (var u in updates)
+            {
+                var shape = Find(u.Id);
+                if (shape is null) continue;
+
+                foreach (var c in GetShapeCells(shape)) affectedCells.Add(c); // ancienne géométrie
+
+                shape.BaseWidth = Math.Max(1, u.BaseWidth);
+                shape.BaseHeight = Math.Max(1, u.BaseHeight);
+                shape.Scale = Math.Max(0.05, u.Scale);
+                shape.Color = u.Color;
+                ClampToGrid(shape, u.X, u.Y);
+                InvalidateCache(u.Id);
+
+                foreach (var c in GetShapeCells(shape)) affectedCells.Add(c); // nouvelle géométrie
+            }
+
+            RecomposeCells(affectedCells);
+        }
+
         public SceneManager(WallLayout layout)
         {
             _layout = layout;
@@ -187,25 +217,39 @@ namespace Liekinheitin.CreativeTool.Domain
         /// cache de chaque forme plutôt que de la re-rasteriser à chaque appel.</summary>
         private void RecomposeCells(IEnumerable<(int Col, int Row)> cells)
         {
-            foreach (var (col, row) in cells.Distinct())
+            // Réutilise directement le HashSet s'il en est déjà un (évite une réallocation
+            // via Distinct() quand l'appelant a déjà dédupliqué, comme ApplyShapeStatesBatch).
+            var cellSet = cells as HashSet<(int, int)> ?? new HashSet<(int, int)>(cells);
+
+            var finalColors = new Dictionary<(int, int), Color>(cellSet.Count);
+
+            foreach (var (col, row) in cellSet)
             {
                 if (!_layout.HasLed(col, row)) continue;
-
-                Color final = _freehand.GetPixel(col, row);
-
-                foreach (var shape in _shapes)
-                {
-                    if (col >= shape.X && col < shape.X + shape.ActualWidth &&
-                        row >= shape.Y && row < shape.Y + shape.ActualHeight &&
-                        GetShapeCells(shape).Contains((col, row)))
-                    {
-                        final = shape.Color;
-                    }
-                }
-
-                if (_display.GetPixel(col, row) != final)
-                    _display.SetPixel(col, row, final);
+                finalColors[(col, row)] = _freehand.GetPixel(col, row);
             }
+
+            // Peint chaque forme une seule fois sur ses propres cases (déjà en cache), au lieu
+            // de tester chaque case affectée contre chaque forme — le coût dépend maintenant de
+            // la taille des formes, plus du nombre de formes multiplié par le nombre de cases.
+            foreach (var shape in _shapes)
+            {
+                foreach (var cell in GetShapeCells(shape))
+                {
+                    if (finalColors.ContainsKey(cell))
+                        finalColors[cell] = shape.Color;
+                }
+            }
+
+            var toWrite = new List<(int, int, Color)>(finalColors.Count);
+            foreach (var (cell, color) in finalColors)
+            {
+                if (_display.GetPixel(cell.Item1, cell.Item2) != color)
+                    toWrite.Add((cell.Item1, cell.Item2, color));
+            }
+
+            if (toWrite.Count > 0)
+                _display.SetPixelsBatch(toWrite);
         }
 
         private void RecomposeAll()
@@ -215,6 +259,28 @@ namespace Liekinheitin.CreativeTool.Domain
                 for (int r = 0; r < _layout.Rows; r++)
                     if (_layout.HasLed(c, r)) all.Add((c, r));
             RecomposeCells(all);
+        }
+        /// <summary>Retire toutes les formes (utilisé avant de charger un projet, pour repartir propre).</summary>
+        public void ClearShapes()
+        {
+            var allCells = new List<(int, int)>();
+            foreach (var shape in _shapes)
+                allCells.AddRange(GetShapeCells(shape));
+
+            _shapes.Clear();
+            _shapeCellCache.Clear();
+            RecomposeCells(allCells);
+        }
+
+        /// <summary>Recrée une forme avec un Id précis (utilisé au chargement d'un projet, pour que
+        /// les pistes de la timeline — qui référencent ces Id — retrouvent la bonne forme).</summary>
+        public PlacedShape AddLoadedShape(Guid id, ShapeType type, int x, int y, int baseWidth, int baseHeight, double scale, Color color)
+        {
+            var shape = new PlacedShape { Id = id, Type = type, BaseWidth = baseWidth, BaseHeight = baseHeight, Scale = scale, Color = color };
+            ClampToGrid(shape, x, y);
+            _shapes.Add(shape);
+            RecomposeCells(GetShapeCells(shape));
+            return shape;
         }
     }
 }

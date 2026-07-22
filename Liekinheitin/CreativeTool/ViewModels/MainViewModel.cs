@@ -17,7 +17,8 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly FixtureManager _fixtures;
         private readonly Timer _publishTimer;
         private int _tickCount;
-        private const int FullResyncEveryNTicks = 80;
+        private const int FullResyncEveryNTicks = 40;
+        public AudioViewModel Audio { get; }
 
         public BrushTool Brush { get; }
         public SceneManager Scene => _scene;
@@ -33,13 +34,14 @@ namespace Liekinheitin.CreativeTool.ViewModels
         public TimelinePlayer TimelinePlayer { get; }
         public TimelineViewModel TimelineViewModel { get; }
 
-        public MainViewModel(SceneManager scene, WallLayout layout, BrushTool brush, IStatePublisher publisher, FixtureManager fixtures)
+        public MainViewModel(SceneManager scene, WallLayout layout, BrushTool brush, IStatePublisher publisher, FixtureManager fixtures, Services.AudioPlaybackService audio)
         {
             _scene = scene;
             _layout = layout;
             _publisher = publisher;
             _fixtures = fixtures;
             Brush = brush;
+            Audio = new AudioViewModel(audio);
 
             ColorPicker = new ColorPickerViewModel(brush);
             ColumnFill = new ColumnFillTool(scene);
@@ -48,7 +50,7 @@ namespace Liekinheitin.CreativeTool.ViewModels
             FixtureControl = new FixtureControlViewModel(fixtures);
 
             TimelinePlayer = new TimelinePlayer(Timeline, scene, fixtures);
-            TimelineViewModel = new TimelineViewModel(Timeline, TimelinePlayer, scene);
+            TimelineViewModel = new TimelineViewModel(Timeline, TimelinePlayer, scene, Audio);
 
             _publishTimer = new Timer(_ => PublishTick(), null, 0, 25);
         }
@@ -79,6 +81,14 @@ namespace Liekinheitin.CreativeTool.ViewModels
 
             if (entities.Count == 0) return;
             _publisher.Publish(new State { Entities = entities });
+        }
+        public void SaveProject(string path) =>
+            Services.ProjectFileService.Save(path, _scene, Timeline, TimelineViewModel.TotalDuration);
+
+        public void LoadProject(string path)
+        {
+            double duration = Services.ProjectFileService.Load(path, _scene, Timeline);
+            TimelineViewModel.TotalDuration = duration;
         }
 
         public void Dispose()

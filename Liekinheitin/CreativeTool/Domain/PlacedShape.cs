@@ -10,7 +10,7 @@ namespace Liekinheitin.CreativeTool.Domain
     /// </summary>
     public sealed class PlacedShape
     {
-        public Guid Id { get; } = Guid.NewGuid();
+        public Guid Id { get; init; } = Guid.NewGuid();
         public ShapeType Type { get; set; }
 
         /// <summary>Colonne gauche du rectangle englobant (0 = bord gauche de la grille).</summary>

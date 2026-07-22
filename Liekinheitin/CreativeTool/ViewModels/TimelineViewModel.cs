@@ -9,21 +9,21 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly Timeline _timeline;
         private readonly TimelinePlayer _player;
         private readonly SceneManager _scene;
+        private readonly AudioViewModel _audio;
         private double _totalDuration = 10.0;
 
         public event PropertyChangedEventHandler? PropertyChanged;
-        /// <summary>Déclenché après tout ajout de keyframe (forme ou appareil) — signal
-        /// pour que la vue redessine les pistes.</summary>
         public event Action? KeyframeAdded;
 
         public Timeline Timeline => _timeline;
         public TimelinePlayer Player => _player;
 
-        public TimelineViewModel(Timeline timeline, TimelinePlayer player, SceneManager scene)
+        public TimelineViewModel(Timeline timeline, TimelinePlayer player, SceneManager scene, AudioViewModel audio)
         {
             _timeline = timeline;
             _player = player;
             _scene = scene;
+            _audio = audio;
             _player.TimeChanged += () =>
             {
                 PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CurrentTime)));
@@ -52,14 +52,28 @@ namespace Liekinheitin.CreativeTool.ViewModels
             set => _player.SeekTo(Math.Min(value, Duration));
         }
 
+        /// <summary>Un seul bouton : anime ET musique démarrent/pausent ensemble.
+        /// Sans synchronisation temporelle — juste un déclenchement simultané.</summary>
         public void TogglePlayPause()
         {
-            if (_player.IsPlaying) _player.Pause();
-            else _player.Play();
+            if (_player.IsPlaying)
+            {
+                _player.Pause();
+                _audio.Pause();
+            }
+            else
+            {
+                _player.Play();
+                _audio.Play();
+            }
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(IsPlaying)));
         }
 
-        public void Stop() => _player.Stop();
+        public void Stop()
+        {
+            _player.Stop();
+            _audio.Stop();
+        }
 
         public void AddKeyframe(PlacedShape shape)
         {
