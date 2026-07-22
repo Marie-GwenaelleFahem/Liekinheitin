@@ -15,6 +15,7 @@ using Liekinheitin.Application.Services;
 using Liekinheitin.CreativeTool.Models;
 using Liekinheitin.CreativeTool.Services;
 using Liekinheitin.CreativeTool.Shapes;
+using Liekinheitin.Domain.Entities;
 using Liekinheitin.Infrastructure.Config;
 using Liekinheitin.Infrastructure.Network;
 using Microsoft.Win32;
@@ -151,6 +152,11 @@ namespace Liekinheitin.CreativeTool.Views
             _playbackController.StateChanged += (_, _) =>
             {
                 SyncAudioPlayback();
+                if (_playbackController.Status == PlaybackStatus.Stopped)
+                {
+                    PublishFinalBlackout();
+                    LedPreview.Clear();
+                }
                 UpdatePlaybackUi();
             };
             _audioPlaybackService.MediaOpened += OnAudioMediaOpened;
@@ -1567,6 +1573,13 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void RenderPreview(double currentTime)
         {
+            if (IsMovingHeadBreak(currentTime))
+            {
+                LedPreview.Clear();
+                UpdatePreviewSelectionOverlay();
+                return;
+            }
+
             var state = _playbackEngine.ComputeState(currentTime, _project);
             if (state.Entities.Count == 0)
             {
@@ -1677,8 +1690,11 @@ namespace Liekinheitin.CreativeTool.Views
         {
             try
             {
-                var gridState = _playbackEngine.ComputeState(currentTime, _project);
+                var gridState = IsMovingHeadBreak(currentTime)
+                    ? CreateBlackWallState()
+                    : _playbackEngine.ComputeState(currentTime, _project);
                 var networkState = _playbackEngine.MapToRealEntityIds(gridState);
+                AddMovingHeadShow(networkState, currentTime);
                 _statePublisher.Publish(networkState);
             }
             catch
@@ -1687,6 +1703,77 @@ namespace Liekinheitin.CreativeTool.Views
             }
         }
 
+        private void PublishFinalBlackout()
+        {
+            try
+            {
+                var networkState = _playbackEngine.MapToRealEntityIds(CreateBlackWallState());
+                AddMovingHeadShow(networkState, 0);
+                _statePublisher.Publish(networkState);
+            }
+            catch
+            {
+                PlaybackStatusItem.Content = "Erreur extinction finale UDP";
+            }
+        }
+        private const double MovingHeadBreakStart = 15.0;
+        private const double MovingHeadBreakEnd = 20.0;
+
+        private static bool IsMovingHeadBreak(double currentTime)
+            => currentTime >= MovingHeadBreakStart && currentTime < MovingHeadBreakEnd;
+
+        private State CreateBlackWallState()
+        {
+            var state = new State();
+            var pixelCount = Math.Max(0, _project.WallWidth * _project.WallHeight);
+            for (var entityId = 0; entityId < pixelCount; entityId++)
+            {
+                state.Entities.Add(new Entity { Id = entityId, Channels = new byte[] { 0, 0, 0 } });
+            }
+
+            return state;
+        }
+
+        private static void AddMovingHeadShow(State state, double currentTime)
+        {
+            var active = IsMovingHeadBreak(currentTime);
+            var localTime = Math.Clamp(currentTime - MovingHeadBreakStart, 0, MovingHeadBreakEnd - MovingHeadBreakStart);
+
+            for (var index = 0; index < 4; index++)
+            {
+                if (!active)
+                {
+                    state.Entities.Add(new Entity { Id = index + 2, Channels = new byte[13] });
+                    continue;
+                }
+
+                var phase = (localTime * 2.15) + (index * Math.PI / 2.0);
+                var pan = ToDmx(128 + (Math.Sin(phase) * 92));
+                var tilt = ToDmx(118 + (Math.Sin((phase * 1.37) + 0.8) * 64));
+                var orange = ((int)Math.Floor(localTime * 2.4) + index) % 2 == 0;
+                var beat = Math.Abs(Math.Sin(localTime * Math.PI * 2.4));
+
+                state.Entities.Add(new Entity
+                {
+                    Id = index + 2,
+                    Channels = new byte[]
+                    {
+                        pan, 0, tilt, 0,
+                        42,
+                        ToDmx(190 + (beat * 65)),
+                        beat > 0.88 ? (byte)72 : (byte)0,
+                        255,
+                        orange ? (byte)5 : (byte)0,
+                        0,
+                        0,
+                        0, 0
+                    }
+                });
+            }
+        }
+
+        private static byte ToDmx(double value)
+            => (byte)Math.Clamp((int)Math.Round(value), 0, 255);
         private void MarkDirty()
         {
             _isDirty = true;
@@ -2476,5 +2563,3 @@ namespace Liekinheitin.CreativeTool.Views
         private static byte ScaleChannel(byte value, double factor) => (byte)Math.Clamp((int)Math.Round(value * factor), 0, 255);
     }
 }
-
-
