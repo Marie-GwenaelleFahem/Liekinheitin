@@ -1592,14 +1592,20 @@ namespace Liekinheitin.CreativeTool.Views
         // la documentation d'architecture du projet.
         private const int WallEntityIdStart = 100;
 
+        // Le mur physique est composé de 64 bandes de LED, chacune longue de 259 LED (chaque
+        // bande occupe 2 univers DMX : 170 + 89 = 259 entités). Confirmé sur le vrai matériel :
+        // chaque bande forme une COLONNE verticale du mur (64 colonnes de 259 LED de haut), pas
+        // une ligne horizontale — d'où le WallWidth/WallHeight de ShowProject (64 x 259) et le
+        // remplissage colonne par colonne ci-dessous plutôt qu'un simple tri global.
+        private const int BandLength = 259;
+
         /// <summary>
-        /// Charge patch.json et renvoie la liste triée des identifiants d'entité réels
-        /// appartenant au mur (à partir de <see cref="WallEntityIdStart"/>, en excluant donc le
-        /// projecteur statique et les lyres) — pour que <see cref="ShowPlaybackEngine"/> puisse
-        /// traduire ses ID de grille internes (0, 1, 2...) vers les vrais ID physiques attendus
-        /// par RoutingHost/le patch. Sans ce fichier (poste de développement sans copie du
-        /// patch, par exemple), l'appli continue de fonctionner en local avec les ID de grille
-        /// bruts.
+        /// Charge patch.json et renvoie la liste des identifiants d'entité réels du mur,
+        /// réarrangée pour correspondre à la grille interne (0, 1, 2... en ligne par ligne,
+        /// largeur = nombre de bandes) : la bande n devient la colonne n, remplie de haut en
+        /// bas dans l'ordre de ses canaux DMX. Sans ce fichier (poste de développement sans
+        /// copie du patch, par exemple), l'appli continue de fonctionner en local avec les ID
+        /// de grille bruts.
         /// </summary>
         private static IReadOnlyList<int>? LoadRealEntityIds()
         {
@@ -1622,7 +1628,23 @@ namespace Liekinheitin.CreativeTool.Views
                 }
 
                 ids.Sort();
-                return ids;
+
+                if (ids.Count == 0 || ids.Count % BandLength != 0)
+                {
+                    return ids; // structure inattendue : pas de réarrangement possible, on renvoie tel quel
+                }
+
+                int bandCount = ids.Count / BandLength; // nombre de colonnes (bandes)
+                var grid = new int[ids.Count];
+                for (int band = 0; band < bandCount; band++)
+                {
+                    for (int position = 0; position < BandLength; position++)
+                    {
+                        grid[(position * bandCount) + band] = ids[(band * BandLength) + position];
+                    }
+                }
+
+                return grid;
             }
             catch
             {
