@@ -92,6 +92,7 @@ namespace Liekinheitin.CreativeTool.Views
             _playbackEngine = new ShowPlaybackEngine(LoadRealEntityIds());
             _statePublisher = new UdpStatePublisher(RoutingHostIp, RoutingHostStatePort);
             _project = CreateDefaultProject();
+            LedPreview.Resize(_project.WallWidth, _project.WallHeight);
 
             _playbackTimer = new DispatcherTimer
             {
@@ -1089,6 +1090,7 @@ namespace Liekinheitin.CreativeTool.Views
             _project = project;
             _projectPath = projectPath;
             _isDirty = markDirty;
+            LedPreview.Resize(project.WallWidth, project.WallHeight);
             _selectedClip = FindFirstClip(project);
             _selectedTrack = _selectedClip is null ? project.Tracks.FirstOrDefault() : FindTrackContainingClip(_selectedClip);
             EnsureMediaTimelineClips();

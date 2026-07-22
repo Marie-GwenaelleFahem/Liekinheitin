@@ -18,8 +18,8 @@ namespace Liekinheitin.CreativeTool.Views
         public const int DefaultHeight = 128;
 
         private const int BytesPerPixel = 4;
-        private readonly byte[] _pixels;
-        private readonly WriteableBitmap _bitmap;
+        private byte[] _pixels;
+        private WriteableBitmap _bitmap;
         private Point? _lastDragPixel;
 
         public PixelGridView()
@@ -45,9 +45,32 @@ namespace Liekinheitin.CreativeTool.Views
 
         public event EventHandler? PixelDragCompleted;
 
-        public int WallWidth { get; }
+        public int WallWidth { get; private set; }
 
-        public int WallHeight { get; }
+        public int WallHeight { get; private set; }
+
+        /// <summary>
+        /// Adapte la grille d'aperçu à la vraie taille du mur du projet chargé (par exemple
+        /// 259 x 64 pour le mur réel en bandes, plutôt que le 128 x 128 par défaut). Ne
+        /// réalloue rien si la taille demandée est déjà celle en cours.
+        /// </summary>
+        public void Resize(int width, int height)
+        {
+            width = Math.Max(1, width);
+            height = Math.Max(1, height);
+
+            if (width == WallWidth && height == WallHeight)
+            {
+                return;
+            }
+
+            WallWidth = width;
+            WallHeight = height;
+            _pixels = new byte[WallWidth * WallHeight * BytesPerPixel];
+            _bitmap = new WriteableBitmap(WallWidth, WallHeight, 96, 96, PixelFormats.Bgra32, null);
+            PreviewImage.Source = _bitmap;
+            Clear();
+        }
 
         public void ShowSelection(IReadOnlyCollection<int>? entityIds, bool showResizeHandles, bool showRotationHandle)
         {
