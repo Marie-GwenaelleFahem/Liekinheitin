@@ -90,7 +90,7 @@ foreach (var time in Enumerable.Range(0, 41).Select(second => (double)second))
     var state = engine.ComputeState(time, finlandTemplate);
     Assert(state.Entities.Count == 128 * 128, $"Le modèle Finland doit produire une image complète à {time}s.");
 }
-foreach (var time in new[] { 1.0, 8.0, 12.0, 18.0, 23.0, 28.0, 32.0, 36.0, 39.5 })
+foreach (var time in new[] { 1.5, 8.36, 10.5, 14.0, 18.2, 20.5, 22.5, 25.0, 29.7, 34.0, 38.5 })
 {
     var state = engine.ComputeState(time, finlandTemplate);
     var litPixels = state.Entities.Count(entity => entity.Channels.Any(channel => channel > 0));
