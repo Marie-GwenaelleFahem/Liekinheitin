@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -11,6 +11,12 @@
   <ItemGroup>
     <ProjectReference Include="..\Application\Liekinheitin.Application.csproj" />
     <ProjectReference Include="..\Domain\Liekinheitin.Domain.csproj" />
+    <ProjectReference Include="..\Infrastructure\Liekinheitin.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="Animations\**\*" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
+

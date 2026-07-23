@@ -1,12 +1,50 @@
-﻿<UserControl x:Class="Liekinheitin.CreativeTool.Views.ColorPickerView"
+<UserControl x:Class="Liekinheitin.CreativeTool.Views.ColorPickerView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
-             xmlns:local="clr-namespace:Liekinheitin.CreativeTool.Views"
-             mc:Ignorable="d" 
-             d:DesignHeight="450" d:DesignWidth="800">
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             mc:Ignorable="d"
+             d:DesignHeight="150"
+             d:DesignWidth="280">
     <Grid>
-            
+        <Grid.RowDefinitions>
+            <RowDefinition Height="28" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <Border x:Name="PreviewBorder"
+                BorderBrush="#555555"
+                BorderThickness="1"
+                Background="White" />
+
+        <Grid Grid.Row="1" Margin="0,8,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="24" />
+                <RowDefinition Height="24" />
+                <RowDefinition Height="24" />
+                <RowDefinition Height="24" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="22" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="48" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock Grid.Row="0" Foreground="#DADADA" Text="R" VerticalAlignment="Center" />
+            <Slider x:Name="RedSlider" Grid.Row="0" Grid.Column="1" Maximum="255" ValueChanged="OnSliderValueChanged" />
+            <TextBox x:Name="RedTextBox" Grid.Row="0" Grid.Column="2" Margin="6,0,0,2" TextChanged="OnTextBoxTextChanged" />
+
+            <TextBlock Grid.Row="1" Foreground="#DADADA" Text="G" VerticalAlignment="Center" />
+            <Slider x:Name="GreenSlider" Grid.Row="1" Grid.Column="1" Maximum="255" ValueChanged="OnSliderValueChanged" />
+            <TextBox x:Name="GreenTextBox" Grid.Row="1" Grid.Column="2" Margin="6,0,0,2" TextChanged="OnTextBoxTextChanged" />
+
+            <TextBlock Grid.Row="2" Foreground="#DADADA" Text="B" VerticalAlignment="Center" />
+            <Slider x:Name="BlueSlider" Grid.Row="2" Grid.Column="1" Maximum="255" ValueChanged="OnSliderValueChanged" />
+            <TextBox x:Name="BlueTextBox" Grid.Row="2" Grid.Column="2" Margin="6,0,0,2" TextChanged="OnTextBoxTextChanged" />
+
+            <TextBlock Grid.Row="3" Foreground="#DADADA" Text="W" VerticalAlignment="Center" />
+            <Slider x:Name="WhiteSlider" Grid.Row="3" Grid.Column="1" Maximum="255" ValueChanged="OnSliderValueChanged" />
+            <TextBox x:Name="WhiteTextBox" Grid.Row="3" Grid.Column="2" Margin="6,0,0,0" TextChanged="OnTextBoxTextChanged" />
+        </Grid>
     </Grid>
 </UserControl>
