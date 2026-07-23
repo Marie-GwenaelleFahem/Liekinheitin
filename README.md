@@ -39,9 +39,9 @@ Modèles de données purs : `Controller`, `Entity` (une LED/fixture et ses canau
 
 ### Infrastructure
 
-- `JsonPatchLoader` — lecture/écriture du plan d'adressage (`Path.json`).
+- `JsonPatchLoader` — lecture/écriture du plan d'adressage (`patch.json`).
 - `ArtNetSender` — construction et envoi des paquets ArtDMX en UDP (port 6454).
-- `UdpStatePublisher` / `UdpStateReceiver` — diffusion de l'état lumineux en JSON sur UDP.
+- `UdpStatePublisher` / `UdpStateReceiver` — diffusion de l'état lumineux en MessagePack sur UDP, découpée en morceaux (`UdpChunkSender` / `UdpChunkReassembler`) pour rester sous la limite de fragmentation réseau.
 - `UdpEntityListPublisher` / `UdpEntityListReceiver` — diffusion de la liste des entités au démarrage / rechargement du patch.
 - `HeartbeatService` — ping de présence bidirectionnel entre CreativeTool et RoutingHost.
 - `LogService` — journalisation centralisée.
@@ -98,13 +98,13 @@ Lancer RoutingHost dans un autre terminal :
 dotnet run --project Liekinheitin\RoutingHost\Liekinheitin.RoutingHost.csproj
 ```
 
-CreativeTool publie actuellement les `State` en UDP vers `127.0.0.1:5000` pendant la lecture. RoutingHost doit donc écouter ce port pour recevoir les états.
+CreativeTool publie les `State` en UDP vers `127.0.0.1:5000` pendant la lecture ; RoutingHost écoute ce port et route automatiquement l'animation vers les contrôleurs ArtNet.
 
 Si un build échoue avec un message du type `Liekinheitin.CreativeTool.exe est en cours d'utilisation`, fermer la fenêtre CreativeTool déjà ouverte puis relancer le build. C'est un verrou Windows sur l'exécutable, pas une erreur de compilation.
 
 ## Configuration
 
-Le fichier `Liekinheitin/Path.json` décrit le plan d'adressage : contrôleurs, univers DMX et plages d'entités associées.
+Le fichier `Liekinheitin/patch.json` décrit le plan d'adressage : contrôleurs, univers DMX et plages d'entités associées.
 
 ## Notes Git
 
