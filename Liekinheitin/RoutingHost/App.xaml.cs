@@ -26,10 +26,11 @@ namespace Liekinheitin.RoutingHost
             IPacketSender packetSender = new ArtNetSender(logService, snapshotStore);
             var routingEngine = new RoutingEngine(patchService, packetSender);
 
-            // Écoute en continu le flux temps réel envoyé par CreativeTool (port 9001,
-            // cohérent avec UdpStatePublisher côté CreativeTool) et route chaque State
-            // reçu vers ArtNet automatiquement, dès qu'il arrive.
-            var stateReceiver = new UdpStateReceiver(listenPort: 9001);
+            // Écoute en continu le flux temps réel envoyé par CreativeTool (port 9001), via
+            // LiteNetLib (UDP fiabilisé) au lieu d'UDP brut — retransmission automatique en
+            // cas de perte de paquet, ce qui a résolu les traînées lumineuses observées lors
+            // d'animations denses.
+            var stateReceiver = new LiteNetStateReceiver(listenPort: 9001);
             routingEngine.Start(stateReceiver);
             stateReceiver.StartListening();
 

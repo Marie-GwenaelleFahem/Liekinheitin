@@ -11,7 +11,7 @@ namespace Liekinheitin.CreativeTool
         {
             base.OnStartup(e);
 
-            var statePublisher = new UdpStatePublisher(targetIp: "127.0.0.1", targetPort: 9001);
+            var statePublisher = new LiteNetStatePublisher(targetIp: "127.0.0.1", targetPort: 9001);
             var layout = new WallLayout(columns: 128, rows: 128);
             var scene = new SceneManager(layout);
             var brush = new BrushTool(scene);

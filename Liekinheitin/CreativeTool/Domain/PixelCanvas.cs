@@ -10,7 +10,7 @@ namespace Liekinheitin.CreativeTool.Domain
         private readonly Dictionary<(int Col, int Row), int> _networkDirtyResendCounts = new();
         private readonly HashSet<(int Col, int Row)> _uiDirty = new();
         private readonly object _lock = new();
-        private const int ResendCount = 4;
+        private const int ResendCount = 1;
 
         public int Columns { get; }
         public int Rows { get; }

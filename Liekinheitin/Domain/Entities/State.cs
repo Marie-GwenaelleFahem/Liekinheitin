@@ -7,12 +7,7 @@ namespace Liekinheitin.Domain.Entities
     /// <summary>
     /// Regroupe la totalité des entités et de leurs valeurs à un instant précis. C'est 
     /// l'objet que CreativeTool construit et envoie à RoutingHost 40 fois par seconde 
-    /// pendant la lecture d'une animation ; c'est aussi ce que RoutingHost construit une 
-    /// seule fois au démarrage, via PatchService.BuildInitialState(), pour indiquer à 
-    /// CreativeTool quelles entités existent, avec leurs canaux à zéro. FindEntity(id) 
-    /// parcourt Entities et renvoie l'entité correspondant à l'identifiant demandé 
-    /// (ou null si elle n'existe pas) ; PixelGridViewModel s'en sert par exemple pour 
-    /// retrouver la couleur actuelle d'un pixel donné.
+    /// pendant la lecture d'une animation. 
     /// </summary>
     public class State
     {

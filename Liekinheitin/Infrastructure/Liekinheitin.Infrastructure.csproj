@@ -11,6 +11,11 @@
     <ProjectReference Include="..\Domain\Liekinheitin.Domain.csproj" />
   </ItemGroup>
 
+    <ItemGroup>
+	    <PackageReference Include="LiteNetLib" Version="2.1.4" />
+	    <PackageReference Include="MessagePack" Version="3.1.8" />
+    </ItemGroup>
+
 	<!--
     Infrastructure référence Application et Domain (et a donc accès à Domain de façon
     transitive via Application). Aucun projet WPF ne doit être référencé ici : Infrastructure

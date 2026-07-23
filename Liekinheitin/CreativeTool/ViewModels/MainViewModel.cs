@@ -17,7 +17,7 @@ namespace Liekinheitin.CreativeTool.ViewModels
         private readonly FixtureManager _fixtures;
         private readonly Timer _publishTimer;
         private int _tickCount;
-        private const int FullResyncEveryNTicks = 40;
+        private const int FullResyncEveryNTicks = 80;
         public AudioViewModel Audio { get; }
 
         public BrushTool Brush { get; }
