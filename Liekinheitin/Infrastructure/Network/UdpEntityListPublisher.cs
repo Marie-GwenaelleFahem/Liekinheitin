@@ -1,7 +1,7 @@
 ﻿using Liekinheitin.Application.Interfaces;
 using Liekinheitin.Domain.Entities;
+using MessagePack;
 using System.Net.Sockets;
-using System.Text.Json;
 
 namespace Liekinheitin.Infrastructure.Network;
 
@@ -20,6 +20,7 @@ public class UdpEntityListPublisher : IEntityListPublisher, IDisposable
     private readonly UdpClient _udpClient = new();
     private readonly string _targetIp;
     private readonly int _targetPort;
+    private ushort _nextMessageId;
 
     /// <param name="targetIp">Adresse IP de CreativeTool.</param>
     /// <param name="targetPort">Port UDP sur lequel CreativeTool écoute la liste des entités.</param>
@@ -32,8 +33,12 @@ public class UdpEntityListPublisher : IEntityListPublisher, IDisposable
     /// <inheritdoc />
     public void PublishEntityList(State state)
     {
-        byte[] payload = JsonSerializer.SerializeToUtf8Bytes(state);
-        _udpClient.Send(payload, payload.Length, _targetIp, _targetPort);
+        byte[] payload = MessagePackSerializer.Serialize(StateMessagePackMapper.ToDto(state));
+
+        foreach (byte[] chunk in UdpChunkSender.Split(payload, _nextMessageId++))
+        {
+            _udpClient.Send(chunk, chunk.Length, _targetIp, _targetPort);
+        }
     }
 
     public void Dispose() => _udpClient.Dispose();

@@ -49,6 +49,10 @@ namespace Liekinheitin.RoutingHost.Views
     /// </summary>
     public partial class PatchVisualizationView : UserControl
     {
+        // Port UDP local sur lequel CreativeTool publie son State en continu (voir
+        // RoutingHostStatePort dans CreativeTool/Views/MainWindow.xaml.cs).
+        private const int StatePort = 5000;
+
         private PatchService _patchService = null!;
         private readonly List<string> _path = new();
 
@@ -56,10 +60,11 @@ namespace Liekinheitin.RoutingHost.Views
         private readonly Dictionary<string, string> _statusByController = new();
         private readonly DispatcherTimer _healthTimer = new() { Interval = TimeSpan.FromSeconds(5) };
 
-        private readonly LogService _logService = new();
+        private readonly LogService _logService = LogService.Instance;
         private readonly UniverseSnapshotStore _snapshotStore = new();
         private IPacketSender _packetSender = null!;
         private RoutingEngine _routingEngine = null!;
+        private UdpStateReceiver _stateReceiver = null!;
 
         public PatchVisualizationView()
         {
@@ -73,6 +78,15 @@ namespace Liekinheitin.RoutingHost.Views
 
             _packetSender = new ArtNetSender(_logService, _snapshotStore);
             _routingEngine = new RoutingEngine(_patchService, _packetSender);
+
+            // Reçoit en continu l'État envoyé par CreativeTool (~40x/seconde) et le route vers
+            // ArtNet via _routingEngine : sans ça, l'animation jouée dans CreativeTool n'atteint
+            // jamais le matériel, même si l'envoi manuel par pastille de couleur fonctionne (lui
+            // ne passe pas par le réseau CreativeTool -> RoutingHost).
+            _stateReceiver = new UdpStateReceiver(StatePort);
+            _routingEngine.Start(_stateReceiver);
+            _stateReceiver.StartListening();
+            Unloaded += (_, _) => _stateReceiver.StopListening();
 
             _healthChecker.ControllerStatusChanged += OnControllerStatusChanged;
             _healthTimer.Tick += async (s, e) => await _healthChecker.CheckAllAsync(_patchService.Controllers);
