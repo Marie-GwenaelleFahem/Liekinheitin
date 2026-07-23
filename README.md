@@ -39,9 +39,9 @@ Modèles de données purs : `Controller`, `Entity` (une LED/fixture et ses canau
 
 ### Infrastructure
 
-- `JsonPatchLoader` — lecture/écriture du plan d'adressage (`Path.json`).
+- `JsonPatchLoader` — lecture/écriture du plan d'adressage (`patch.json`).
 - `ArtNetSender` — construction et envoi des paquets ArtDMX en UDP (port 6454).
-- `UdpStatePublisher` / `UdpStateReceiver` — diffusion de l'état lumineux en JSON sur UDP.
+- `UdpStatePublisher` / `UdpStateReceiver` — diffusion de l'état lumineux en MessagePack sur UDP, découpée en morceaux (`UdpChunkSender` / `UdpChunkReassembler`) pour rester sous la limite de fragmentation réseau.
 - `UdpEntityListPublisher` / `UdpEntityListReceiver` — diffusion de la liste des entités au démarrage / rechargement du patch.
 - `HeartbeatService` — ping de présence bidirectionnel entre CreativeTool et RoutingHost.
 - `LogService` — journalisation centralisée.
@@ -50,14 +50,21 @@ Modèles de données purs : `Controller`, `Entity` (une LED/fixture et ses canau
 
 ## État d'avancement
 
+**Projet terminé et livré.** Les deux applications communiquent en continu et pilotent réellement le mur de LED physique.
+
 Les couches Domain, Application et Infrastructure sont implémentées et documentées.
 
 **RoutingHost** :
 - ✅ `PatchVisualizationView` — visualisation du patch avec navigation par drill-down (contrôleurs → univers → LED), statut de santé en direct (ping ICMP via `ControllerHealthChecker`), et envoi manuel de couleurs de test en ArtNet réel pour vérifier le câblage sur le terrain.
-- ⬜ `UniverseMonitorView` / `MonitorViewModel` — suivi des univers actifs, dernières valeurs DMX envoyées, déclenchement de `StateFaker` (squelette de projet, pas encore implémenté).
-- ⬜ `LogView` / `LogViewModel` — affichage du journal alimenté par `LogService` (squelette de projet, pas encore implémenté).
+- ✅ Réception réelle du flux de CreativeTool (`UdpStateReceiver` relié à `RoutingEngine`), routé vers les contrôleurs via `ArtNetSender`.
+- ✅ `LogView` — journal des événements en temps réel (`LogService.Instance`, partagé par toute l'application).
+- ⬜ `UniverseMonitorView` / `MonitorViewModel` — suivi des univers actifs, dernières valeurs DMX envoyées, déclenchement de `StateFaker` : non implémenté, hors périmètre final (pas nécessaire au fonctionnement du spectacle).
 
-**CreativeTool** : dispose maintenant d'un MVP UI — preview LED 128 x 128, timeline, panneau de propriétés, lecture, sauvegarde/chargement JSON, et publication UDP de l'état courant vers RoutingHost (~40 fois/seconde, découpée en morceaux et sérialisée en MessagePack pour rester sous les limites de taille d'un paquet UDP).
+**CreativeTool** : application complète — preview LED 128×128, timeline avec key frames, formes et effets de mouvement, panneau de contrôle des lyres motorisées, intégration musique et médias (image/vidéo/gif), animations finales du spectacle, et publication UDP de l'état courant vers RoutingHost (~40 fois/seconde).
+
+**Communication réseau** : le flux `State`/liste d'entités entre CreativeTool et RoutingHost est sérialisé en **MessagePack** (plus compact que JSON) et **découpé en morceaux UDP** (`UdpChunkSender`/`UdpChunkReassembler`) pour rester sous la limite de fragmentation réseau, indispensable vu la taille du mur (16 384 LED adressables).
+
+**Correspondance avec le matériel réel** : le mur visible fait 128×128 LED, câblé physiquement en 64 bandes de LED pliées en U (chaque bande forme 2 colonnes de 128 LED, avec quelques LED de fixation/pli invisibles). CreativeTool reconstruit cette correspondance à partir de `patch.json` pour que chaque pixel de l'aperçu logiciel corresponde à la bonne LED physique sur le mur.
 
 ## Prérequis
 
@@ -91,13 +98,13 @@ Lancer RoutingHost dans un autre terminal :
 dotnet run --project Liekinheitin\RoutingHost\Liekinheitin.RoutingHost.csproj
 ```
 
-CreativeTool publie actuellement les `State` en UDP vers `127.0.0.1:5000` pendant la lecture. RoutingHost doit donc écouter ce port pour recevoir les états.
+CreativeTool publie les `State` en UDP vers `127.0.0.1:5000` pendant la lecture ; RoutingHost écoute ce port et route automatiquement l'animation vers les contrôleurs ArtNet.
 
 Si un build échoue avec un message du type `Liekinheitin.CreativeTool.exe est en cours d'utilisation`, fermer la fenêtre CreativeTool déjà ouverte puis relancer le build. C'est un verrou Windows sur l'exécutable, pas une erreur de compilation.
 
 ## Configuration
 
-Le fichier `Liekinheitin/Path.json` décrit le plan d'adressage : contrôleurs, univers DMX et plages d'entités associées.
+Le fichier `Liekinheitin/patch.json` décrit le plan d'adressage : contrôleurs, univers DMX et plages d'entités associées.
 
 ## Notes Git
 
