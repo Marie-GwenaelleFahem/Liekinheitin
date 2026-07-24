@@ -168,6 +168,7 @@ namespace Liekinheitin.CreativeTool.Views
                 UpdatePlaybackUi();
             };
             _audioPlaybackService.MediaOpened += OnAudioMediaOpened;
+            _audioPlaybackService.ClipDurationResolved += OnAudioClipDurationResolved;
 
             ApplyEffectPresetFilter();
             ReloadReusableTemplates();
@@ -195,6 +196,11 @@ namespace Liekinheitin.CreativeTool.Views
             }
 
             var currentTime = _playbackController.CurrentTime;
+            if (_playbackController.Status != PlaybackStatus.Playing)
+            {
+                return;
+            }
+
             _audioPlaybackService.Update(currentTime);
             ApplyAudioFade(currentTime);
             TimelineControl.SetPlayhead(currentTime);
@@ -334,6 +340,63 @@ namespace Liekinheitin.CreativeTool.Views
             audioClip.Duration = duration;
             EnsureProjectDurationIncludesClips();
             TimelineControl.Redraw();
+        }
+
+        private void OnAudioClipDurationResolved(TimelineClip audioClip, double duration)
+        {
+            if (!Dispatcher.CheckAccess())
+            {
+                Dispatcher.Invoke(() => OnAudioClipDurationResolved(audioClip, duration));
+                return;
+            }
+
+            if (duration <= 0)
+            {
+                return;
+            }
+
+            if (!_project.Tracks.SelectMany(track => track.Clips).Contains(audioClip))
+            {
+                return;
+            }
+
+            var previousEnd = _project.Duration;
+            var endAlignedVisualClips = _project.Tracks
+                .SelectMany(track => track.Clips)
+                .Where(clip => !clip.IsAudio && !clip.IsMedia && Math.Abs(clip.EndTime - previousEnd) <= 0.05)
+                .ToList();
+
+            audioClip.Duration = duration;
+            var audioEnd = _project.Tracks
+                .SelectMany(track => track.Clips)
+                .Where(clip => clip.IsAudio && !clip.IsHidden)
+                .Select(clip => clip.EndTime)
+                .DefaultIfEmpty(audioClip.EndTime)
+                .Max();
+
+            _project.HardStopTime = null;
+            foreach (var clip in endAlignedVisualClips.Where(clip => clip.StartTime < audioEnd))
+            {
+                clip.Duration = audioEnd - clip.StartTime;
+            }
+
+            foreach (var track in _project.Tracks)
+            {
+                track.Clips.RemoveAll(clip => !clip.IsAudio && clip.StartTime >= audioEnd);
+                foreach (var clip in track.Clips.Where(clip => !clip.IsAudio && clip.EndTime > audioEnd))
+                {
+                    clip.Duration = Math.Max(0.001, audioEnd - clip.StartTime);
+                }
+            }
+            _project.MediaOverlays.RemoveAll(media => media.StartTime >= audioEnd);
+            foreach (var media in _project.MediaOverlays.Where(media => media.StartTime + media.Duration > audioEnd))
+            {
+                media.Duration = Math.Max(0.001, audioEnd - media.StartTime);
+            }
+
+            SetProjectDuration(audioEnd, markDirty: false);
+            TimelineControl.Redraw();
+            RenderPreview(_playbackController.CurrentTime);
         }
 
         private void OnTimelineClipSelected(object? sender, TimelineClip clip)

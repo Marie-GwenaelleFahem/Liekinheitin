@@ -6,7 +6,7 @@
   "AudioFilePath": "Animations\\Musique\\finland-liekinheitin_40secondes.mp3",
   "AudioVolume": 1,
   "AudioFadeOutDuration": 2.4,
-  "HardStopTime": null,
+  "HardStopTime": 56.9,
   "DisableVisualFadeOut": false,
   "Tracks": [
     {
@@ -19,7 +19,7 @@
           "Duration": 56.9,
           "EffectType": 0,
           "IsAudio": true,
-          "AudioFilePath": "Animations\\Musique\\finland-liekinheitin_OBXB1Wl6.mp3",
+          "AudioFilePath": "C:\\Users\\Myaki\\Downloads\\finland-liekinheitin_OBXB1Wl6.mp3",
           "AudioOffsetSeconds": 0,
           "AudioFadeInDuration": 0,
           "AudioFadeOutDuration": 0,
@@ -72783,7 +72783,7 @@
         },
         {
           "Name": "Marie-Gwenaelle, William \u2014 fondu",
-          "StartTime": 15,
+          "StartTime": 14.978,
           "Duration": 1.15,
           "EffectType": 24,
           "IsAudio": false,
@@ -72912,7 +72912,7 @@
           },
           "Intensity": 1,
           "Speed": 1,
-          "TextContent": "MARIE-GWENAELLE,\nWILLIAM",
+          "TextContent": "Groupe",
           "VisualScale": 1,
           "ParticleCount": 96,
           "ParticlePlacement": 0,
@@ -72956,11 +72956,11 @@
               "OffsetY": 0
             }
           ],
-          "EndTime": 16.15
+          "EndTime": 16.128
         },
         {
           "Name": "Georges, Rosine \u2014 fondu",
-          "StartTime": 16.4,
+          "StartTime": 16.378,
           "Duration": 1.05,
           "EffectType": 24,
           "IsAudio": false,
@@ -72984,7 +72984,7 @@
           },
           "Intensity": 1,
           "Speed": 1,
-          "TextContent": "GEORGES, ROSINE",
+          "TextContent": "2",
           "VisualScale": 1,
           "ParticleCount": 96,
           "ParticlePlacement": 0,
@@ -72997,7 +72997,7 @@
           "RotationDegrees": 0,
           "IsMotionDraft": false,
           "MovementKeyframes": [],
-          "EndTime": 17.45
+          "EndTime": 17.428
         },
         {
           "Name": "Vous pr\u00E9sentent \u2014 fondu",
@@ -73025,7 +73025,7 @@
           },
           "Intensity": 1,
           "Speed": 1,
-          "TextContent": "VOUS PR\u00C9SENTENT :",
+          "TextContent": "VOUS PR\u00C9SENTE :",
           "VisualScale": 1,
           "ParticleCount": 96,
           "ParticlePlacement": 0,
@@ -73686,8 +73686,8 @@
       "Clips": [
         {
           "Name": "Rectangles rouge sang \u2014 transformation en marches",
-          "StartTime": 43.07222222222222,
-          "Duration": 1.9500000000000002,
+          "StartTime": 43.09444444444444,
+          "Duration": 2.5055555555555555,
           "EffectType": 39,
           "IsAudio": false,
           "AudioFilePath": null,
@@ -73723,7 +73723,7 @@
           "RotationDegrees": 0,
           "IsMotionDraft": false,
           "MovementKeyframes": [],
-          "EndTime": 45.022222222222226
+          "EndTime": 45.599999999999994
         }
       ]
     },
@@ -73817,7 +73817,7 @@
           "RotationDegrees": 0,
           "IsMotionDraft": false,
           "MovementKeyframes": [],
-          "EndTime": 49.0
+          "EndTime": 49
         }
       ]
     },

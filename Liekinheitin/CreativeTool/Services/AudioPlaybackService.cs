@@ -20,6 +20,7 @@ namespace Liekinheitin.CreativeTool.Services
         }
 
         public event EventHandler? MediaOpened;
+        public event Action<TimelineClip, double>? ClipDurationResolved;
 
         public string? FilePath => _filePath;
 
@@ -64,6 +65,13 @@ namespace Liekinheitin.CreativeTool.Services
             foreach (var clip in clips.Where(item => item.IsAudio && !string.IsNullOrWhiteSpace(item.AudioFilePath)))
             {
                 var player = new MediaPlayer { Volume = _volume };
+                player.MediaOpened += (_, _) =>
+                {
+                    if (player.NaturalDuration.HasTimeSpan)
+                    {
+                        ClipDurationResolved?.Invoke(clip, player.NaturalDuration.TimeSpan.TotalSeconds);
+                    }
+                };
                 player.Open(new Uri(clip.AudioFilePath!, UriKind.Absolute));
                 _clipPlayers[clip] = player;
             }
