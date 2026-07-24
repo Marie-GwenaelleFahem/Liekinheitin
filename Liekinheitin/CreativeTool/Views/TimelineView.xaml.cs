@@ -35,6 +35,7 @@ namespace Liekinheitin.CreativeTool.Views
         private double _resizeStartX;
         private double _resizeOriginalStart;
         private double _resizeOriginalDuration;
+        private double _resizeOriginalAudioOffset;
         private TimelineClip? _draggingClip;
         private double _dragStartX;
         private double _dragOriginalStart;
@@ -451,6 +452,7 @@ namespace Liekinheitin.CreativeTool.Views
                     _resizeStartX = e.GetPosition(TimelineCanvas).X;
                     _resizeOriginalStart = clip.StartTime;
                     _resizeOriginalDuration = clip.Duration;
+                    _resizeOriginalAudioOffset = clip.AudioOffsetSeconds;
                 }
                 else
                 {
@@ -501,8 +503,9 @@ namespace Liekinheitin.CreativeTool.Views
             if (_draggingClip is not null)
             {
                 var dragDeltaSeconds = (e.GetPosition(TimelineCanvas).X - _dragStartX) / PixelsPerSecond;
-                var maximumStart = Math.Max(0, (_project?.Duration ?? _draggingClip.EndTime) - _draggingClip.Duration);
-                _draggingClip.StartTime = Math.Clamp(_dragOriginalStart + dragDeltaSeconds, 0, maximumStart);
+                // La fin du projet n'est pas une barriere : MainWindow agrandit la timeline
+                // via ClipChanged des que le clip depasse sa duree actuelle.
+                _draggingClip.StartTime = Math.Max(0, _dragOriginalStart + dragDeltaSeconds);
                 ClipChanged?.Invoke(this, _draggingClip);
                 Redraw();
                 return;
@@ -514,9 +517,14 @@ namespace Liekinheitin.CreativeTool.Views
             if (_resizeEdge == ResizeEdge.Left)
             {
                 var originalEnd = _resizeOriginalStart + _resizeOriginalDuration;
-                var newStart = Math.Clamp(_resizeOriginalStart + deltaSeconds, 0, originalEnd - MinClipDuration);
+                var minimumStart = resizingClip.IsAudio
+                    ? Math.Max(0, _resizeOriginalStart - _resizeOriginalAudioOffset)
+                    : 0;
+                var newStart = Math.Clamp(_resizeOriginalStart + deltaSeconds, minimumStart, originalEnd - MinClipDuration);
                 resizingClip.StartTime = newStart;
                 resizingClip.Duration = Math.Max(MinClipDuration, originalEnd - newStart);
+                if (resizingClip.IsAudio)
+                    resizingClip.AudioOffsetSeconds = Math.Max(0, _resizeOriginalAudioOffset + (newStart - _resizeOriginalStart));
             }
             else
             {
@@ -620,6 +628,19 @@ namespace Liekinheitin.CreativeTool.Views
                 EffectType.BloodText => Color.FromRgb(136, 8, 20),
                 EffectType.BittenHeart => Color.FromRgb(208, 16, 36),
                 EffectType.BlackDrip => Color.FromRgb(30, 30, 35),
+                EffectType.WhiteRisingLines => Color.FromRgb(225, 242, 255),
+                EffectType.WhiteAppleBounce => Color.FromRgb(245, 250, 255),
+                EffectType.FallingSmallApples => Color.FromRgb(210, 28, 48),
+                EffectType.GreenSnakeCrawl => Color.FromRgb(38, 190, 76),
+                EffectType.SnakeCoilApple => Color.FromRgb(22, 142, 58),
+                EffectType.WhiteJuiceCurtain => Color.FromRgb(230, 242, 255),
+                EffectType.SpiralBloodStairs => Color.FromRgb(138, 8, 30),
+                EffectType.CollapsingBloodStairs => Color.FromRgb(96, 4, 22),
+                EffectType.GrowingThornVines => Color.FromRgb(110, 18, 40),
+                EffectType.BloomingRedRoses => Color.FromRgb(216, 20, 52),
+                EffectType.RedRoseLiquidFade => Color.FromRgb(154, 0, 28),
+                EffectType.BloodRectanglesToStairs => Color.FromRgb(178, 8, 34),
+                EffectType.FallingRosePetals => Color.FromRgb(198, 10, 42),
                 EffectType.FlameParticleBurst => Color.FromRgb(255, 214, 24),
                 EffectType.PersistentRedStars => Color.FromRgb(198, 5, 22),
                 EffectType.PixelText => Color.FromRgb(238, 238, 238),

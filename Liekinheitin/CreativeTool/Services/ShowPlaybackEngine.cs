@@ -143,24 +143,7 @@ namespace Liekinheitin.CreativeTool.Services
                 visualLevel = 1 - smoothProgress;
             }
 
-            var audioFadeDuration = Math.Max(0, project.AudioFadeOutDuration);
-            if (audioFadeDuration <= 0)
-            {
-                return visualLevel;
-            }
-
-            var audioEnd = project.Tracks
-                .SelectMany(track => track.Clips)
-                .Where(clip => clip.IsAudio)
-                .Select(clip => clip.EndTime)
-                .DefaultIfEmpty(project.Duration)
-                .Max();
-            var audioFadeStart = Math.Max(0, audioEnd - audioFadeDuration);
-            var audioLevel = currentTime <= audioFadeStart
-                ? 1
-                : Math.Clamp((audioEnd - currentTime) / Math.Max(0.001, audioEnd - audioFadeStart), 0, 1);
-
-            return Math.Min(visualLevel, audioLevel);
+            return visualLevel;
         }
         private static void ApplyClip(
             IDictionary<int, RgbwColor> colors,
@@ -190,6 +173,7 @@ namespace Liekinheitin.CreativeTool.Services
                 CompositeMaskedEffect(colors, rendered, clip, localTime, totalPixels, wallWidth, wallHeight);
                 return;
             }
+
             var cinematic = new Dictionary<int, RgbwColor>();
             if (CinematicEffectsRenderer.TryApply(cinematic, clip, localTime, wallWidth, wallHeight))
             {
@@ -703,7 +687,7 @@ namespace Liekinheitin.CreativeTool.Services
             return Math.Pow((Math.Sin(phase) + 1) * 0.5, 4);
         }
 
-        private static double ClickRippleLevel(
+        // private static double ClickRippleLevel(
             double localTime,
             double duration,
             int entityId,

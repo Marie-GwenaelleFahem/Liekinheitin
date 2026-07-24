@@ -9,6 +9,10 @@ namespace Liekinheitin.CreativeTool.Models
         public double Duration { get; set; } = 1.0;
         public EffectType EffectType { get; set; } = EffectType.SolidColor;
         public bool IsAudio { get; set; }
+        public string? AudioFilePath { get; set; }
+        public double AudioOffsetSeconds { get; set; }
+        public double AudioFadeInDuration { get; set; }
+        public double AudioFadeOutDuration { get; set; }
         public bool IsHidden { get; set; }
         public bool IsMedia { get; set; }
         public string? MediaOverlayId { get; set; }

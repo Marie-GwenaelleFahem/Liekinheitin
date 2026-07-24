@@ -26,6 +26,22 @@ namespace Liekinheitin.CreativeTool.Models
         BlackDrip,
         FlameParticleBurst,
         PersistentRedStars,
-        PixelText
+        PixelText,
+        AppleSnakeFinale,
+        AppleSnakeApproach,
+        AppleBiteJuice,
+        WhiteRisingLines,
+        WhiteAppleBounce,
+        FallingSmallApples,
+        GreenSnakeCrawl,
+        SnakeCoilApple,
+        WhiteJuiceCurtain,
+        SpiralBloodStairs,
+        CollapsingBloodStairs,
+        GrowingThornVines,
+        BloomingRedRoses,
+        RedRoseLiquidFade,
+        BloodRectanglesToStairs,
+        FallingRosePetals
     }
 }

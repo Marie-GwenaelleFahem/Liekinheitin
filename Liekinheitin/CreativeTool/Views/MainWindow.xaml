@@ -392,6 +392,19 @@
                                     <ComboBoxItem Content="Tracé cardiaque dessiné" Tag="HeartbeatTrace" />
                                     <ComboBoxItem Content="Braises descendantes" Tag="FallingEmbers" />
                                     <ComboBoxItem Content="Lignes blanches descendantes" Tag="WhiteFallingLines" />
+                                    <ComboBoxItem Content="Point blanc — zoom vers une pomme" Tag="WhiteRisingLines" />
+                                    <ComboBoxItem Content="Pomme blanche — chute et deux rebonds" Tag="WhiteAppleBounce" />
+                                    <ComboBoxItem Content="Petites pommes — chute libre" Tag="FallingSmallApples" />
+                                    <ComboBoxItem Content="Serpent vert — approche rampante" Tag="GreenSnakeCrawl" />
+                                    <ComboBoxItem Content="Serpent — enroulement autour de la pomme" Tag="SnakeCoilApple" />
+                                    <ComboBoxItem Content="Morsure — jus blanc et rideau noir" Tag="WhiteJuiceCurtain" />
+                                    <ComboBoxItem Content="Escaliers rouge sang — spirale caméra" Tag="SpiralBloodStairs" />
+                                    <ComboBoxItem Content="Escaliers rouge sang — effondrement" Tag="CollapsingBloodStairs" />
+                                    <ComboBoxItem Content="Tiges épineuses — croissance" Tag="GrowingThornVines" />
+                                    <ComboBoxItem Content="Roses rouges — floraison en profondeur" Tag="BloomingRedRoses" />
+                                    <ComboBoxItem Content="Roses — liquide rouge et fondu noir" Tag="RedRoseLiquidFade" />
+                                    <ComboBoxItem Content="Rectangles — transformation en escalier" Tag="BloodRectanglesToStairs" />
+                                    <ComboBoxItem Content="Roses — chute des pétales" Tag="FallingRosePetals" />
                                     <ComboBoxItem Content="Ondulation — contraction et explosion" Tag="ContractExplodeRipple" />
                                     <ComboBoxItem Content="Sucreries croquées" Tag="SweetsBite" />
                                     <ComboBoxItem Content="Lignes rouges diagonales" Tag="RedDiagonalLines" />
@@ -877,24 +890,6 @@
                                     IsSnapToTickEnabled="False"
                                     Margin="0,0,0,18" />
 
-                            <Grid Margin="0,0,0,4">
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="*" />
-                                    <ColumnDefinition Width="Auto" />
-                                </Grid.ColumnDefinitions>
-                                <TextBlock Style="{StaticResource PropertyLabelStyle}" Text="Fondu de fin" />
-                                <TextBlock x:Name="AudioFadeOutTextBlock"
-                                           Grid.Column="1"
-                                           Foreground="#DADADA"
-                                           FontFamily="Consolas"
-                                           Text="Aucun" />
-                            </Grid>
-                            <Slider x:Name="AudioFadeOutSlider"
-                                    Minimum="0"
-                                    Maximum="10"
-                                    Value="0"
-                                    TickFrequency="0.5"
-                                    IsSnapToTickEnabled="True" />
                         </StackPanel>
                     </TabItem>
 
