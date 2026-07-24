@@ -1472,7 +1472,6 @@ namespace Liekinheitin.CreativeTool.Views
         {
             _audioPlaybackService.Stop();
             _project.AudioVolume = Math.Clamp(_project.AudioVolume, 0, 1);
-            _project.AudioFadeOutDuration = 0;
             ApplyAudioFade(_playbackController.CurrentTime);
 
             _audioPlaybackService.Clear();
@@ -1696,7 +1695,16 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void ApplyAudioFade(double currentTime)
         {
-            _audioPlaybackService.Volume = _project.AudioVolume;
+            var fadeDuration = Math.Max(0, _project.AudioFadeOutDuration);
+            var endTime = _project.HardStopTime ?? _project.Duration;
+            var level = 1.0;
+            if (fadeDuration > 0 && currentTime > endTime - fadeDuration)
+            {
+                var remainingProgress = Math.Clamp((endTime - currentTime) / fadeDuration, 0, 1);
+                level = remainingProgress * remainingProgress * (3 - (2 * remainingProgress));
+            }
+
+            _audioPlaybackService.Volume = _project.AudioVolume * level;
         }
 
         private void SetProjectDuration(double duration, bool markDirty)

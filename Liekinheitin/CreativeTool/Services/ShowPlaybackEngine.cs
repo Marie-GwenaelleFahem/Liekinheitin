@@ -132,7 +132,9 @@ namespace Liekinheitin.CreativeTool.Services
                 return 1.0;
             }
 
-            const double visualFadeDuration = 2.0;
+            var visualFadeDuration = project.AudioFadeOutDuration > 0
+                ? project.AudioFadeOutDuration
+                : 2.0;
             var visualEnd = project.Tracks
                 .SelectMany(track => track.Clips)
                 .Where(clip => !clip.IsAudio && !clip.IsMedia && !clip.IsHidden)

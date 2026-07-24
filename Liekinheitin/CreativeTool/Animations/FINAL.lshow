@@ -73686,8 +73686,8 @@
       "Clips": [
         {
           "Name": "Rectangles rouge sang \u2014 transformation en marches",
-          "StartTime": 43.07222222222222,
-          "Duration": 1.9500000000000002,
+          "StartTime": 43.09444444444444,
+          "Duration": 2.5055555555555555,
           "EffectType": 39,
           "IsAudio": false,
           "AudioFilePath": null,
@@ -73723,7 +73723,7 @@
           "RotationDegrees": 0,
           "IsMotionDraft": false,
           "MovementKeyframes": [],
-          "EndTime": 45.022222222222226
+          "EndTime": 45.599999999999994
         }
       ]
     },
@@ -73817,7 +73817,7 @@
           "RotationDegrees": 0,
           "IsMotionDraft": false,
           "MovementKeyframes": [],
-          "EndTime": 49.0
+          "EndTime": 49
         }
       ]
     },

@@ -36,6 +36,10 @@ namespace Liekinheitin.CreativeTool.Services
             {
                 _volume = Math.Clamp(value, 0, 1);
                 _player.Volume = _volume;
+                foreach (var player in _clipPlayers.Values)
+                {
+                    player.Volume = _volume;
+                }
             }
         }
 
