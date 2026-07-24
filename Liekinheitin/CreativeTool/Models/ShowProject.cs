@@ -23,6 +23,10 @@ namespace Liekinheitin.CreativeTool.Models
 
         public double AudioFadeOutDuration { get; set; }
 
+        public double? HardStopTime { get; set; }
+
+        public bool DisableVisualFadeOut { get; set; }
+
         public List<Track> Tracks { get; set; } = new();
 
         public List<MediaOverlayClip> MediaOverlays { get; set; } = new();

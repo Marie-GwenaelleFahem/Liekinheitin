@@ -1432,6 +1432,7 @@ namespace Liekinheitin.CreativeTool.Views
         private void LoadProjectIntoUi(ShowProject project, string? projectPath, bool markDirty)
         {
             _project = project;
+            ClampProjectToHardStop();
             var contentEnd = GetMaxClipEnd(project);
             if (contentEnd > 0 && project.Duration > contentEnd)
             {
@@ -1450,10 +1451,13 @@ namespace Liekinheitin.CreativeTool.Views
             MediaVideoOverlay.Visibility = Visibility.Collapsed;
             MediaVideoOverlay.Stop();
 
-            _playbackController.Duration = Math.Max(1, project.Duration);
+            _playbackController.Duration = Math.Max(1, project.HardStopTime ?? project.Duration);
             LoadAudioFromProject();
             TimeSlider.Maximum = _playbackController.Duration;
             ProjectDurationTextBox.Text = _playbackController.Duration.ToString("0.###", CultureInfo.InvariantCulture);
+            ProjectDurationTextBox.IsReadOnly = project.HardStopTime.HasValue;
+            ApplyDurationButton.IsEnabled = !project.HardStopTime.HasValue;
+            ExtendTimelineButton.IsEnabled = !project.HardStopTime.HasValue;
             TimelineControl.SetProject(project);
             TimelineControl.SelectClip(_selectedClip);
             TimelineControl.SelectTrack(_selectedTrack);
@@ -1697,7 +1701,15 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void SetProjectDuration(double duration, bool markDirty)
         {
+            if (_project.HardStopTime is { } hardStop)
+            {
+                duration = hardStop;
+            }
             var boundedDuration = Math.Max(Math.Max(1, duration), GetMaxClipEnd(_project));
+            if (_project.HardStopTime is { } maximum)
+            {
+                boundedDuration = maximum;
+            }
             _project.Duration = boundedDuration;
             _playbackController.Duration = boundedDuration;
             TimeSlider.Maximum = boundedDuration;
@@ -1713,10 +1725,34 @@ namespace Liekinheitin.CreativeTool.Views
 
         private void EnsureProjectDurationIncludesClips()
         {
+            ClampProjectToHardStop();
             var maxClipEnd = GetMaxClipEnd(_project);
             if (maxClipEnd > _project.Duration)
             {
                 SetProjectDuration(maxClipEnd, markDirty: false);
+            }
+        }
+
+        private void ClampProjectToHardStop()
+        {
+            if (_project.HardStopTime is not { } hardStop)
+            {
+                return;
+            }
+
+            _project.Duration = hardStop;
+            foreach (var track in _project.Tracks)
+            {
+                track.Clips.RemoveAll(clip => clip.StartTime >= hardStop);
+                foreach (var clip in track.Clips.Where(clip => clip.EndTime > hardStop))
+                {
+                    clip.Duration = Math.Max(0.001, hardStop - clip.StartTime);
+                }
+            }
+            _project.MediaOverlays.RemoveAll(media => media.StartTime >= hardStop);
+            foreach (var media in _project.MediaOverlays.Where(media => media.StartTime + media.Duration > hardStop))
+            {
+                media.Duration = Math.Max(0.001, hardStop - media.StartTime);
             }
         }
 

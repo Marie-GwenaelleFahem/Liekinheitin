@@ -127,6 +127,11 @@ namespace Liekinheitin.CreativeTool.Services
 
         private static double ResolveMasterLevel(double currentTime, ShowProject project)
         {
+            if (project.DisableVisualFadeOut)
+            {
+                return 1.0;
+            }
+
             const double visualFadeDuration = 2.0;
             var visualEnd = project.Tracks
                 .SelectMany(track => track.Clips)
@@ -687,7 +692,7 @@ namespace Liekinheitin.CreativeTool.Services
             return Math.Pow((Math.Sin(phase) + 1) * 0.5, 4);
         }
 
-        // private static double ClickRippleLevel(
+    private static double ClickRippleLevel(
             double localTime,
             double duration,
             int entityId,
